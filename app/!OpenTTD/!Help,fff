@@ -1,0 +1,96 @@
+OpenTTD 14.1 for RISC OS
+========================
+
+OpenTTD is an open source transport simulation game based on
+Transport Tycoon Deluxe. This is a RISC OS port of OpenTTD 14.1.
+
+RISC OS port (C) 2026 Andrew Youll. The application sprite is from the
+2005 RISC OS port by David Llewellyn-Jones.
+OpenTTD is (C) the OpenTTD team and is licensed under the GNU GPL v2
+(see docs.COPYING).
+
+
+Requirements
+------------
+ * RISC OS 5 on an ARMv7 or later machine with VFP, for example a
+   Raspberry Pi 2, 3, 4 or 400. It will NOT run on ARMv6 machines
+   (Pi 1 / Zero), older ARM machines or RPCEmu.
+ * !SharedLibs, which lets RISC OS run ELF programs.
+ * The ARMEABISupport module.
+ * SharedUnixLibrary 1.16 or later.
+ * Optional: the DigitalRenderer module, for sound. The game runs
+   silently without it.
+ * About 128MB of free memory.
+
+You can install all of these with !PackMan.
+
+
+Running
+-------
+Double-click !OpenTTD. The game can run full screen or in a window on
+the desktop. Both are set in Game Options > Graphics:
+
+ * Full screen: tick it to take over the whole screen, untick it to
+   play in a desktop window (you can switch while the game is running).
+ * Resolution: when full screen, this picks the screen mode and RISC OS
+   switches to it; when windowed, it sets the size of the window.
+
+Smaller resolutions or windows run faster, for example 1280x720 or
+1024x768. Your desktop mode is restored when you leave full screen or
+quit. In a window, click in the window to give it the keyboard.
+While windowed the game has an icon bar icon: click it to bring the
+window to the front, or use Menu > Quit. Switching to full screen
+suspends the desktop until you go back to a window or quit.
+
+By default !Run opens the game in a 1024x768 desktop window. To change
+this, edit these lines in !Run:
+
+  Set OpenTTD$Display windowed
+  Set OpenTTD$Size 1024x768
+
+Use "windowed" or "fullscreen" and the size you want, or put a | in
+front of both lines to use the game's own Graphics settings instead.
+
+The free OpenGFX graphics are included, so you don't need the original
+Transport Tycoon files. The OpenSFX sounds come in a second archive
+(OpenTTD-14.1-riscos-OpenSFX.zip); unpack it over !OpenTTD to add them.
+
+If you have the original Transport Tycoon Deluxe files, you can copy them
+into your OpenTTD choices directory (see below) and choose them from the
+game options.
+
+There is no music, because there is no MIDI driver in this port.
+
+
+Where things are saved
+----------------------
+Settings, saved games, screenshots and downloaded content are kept in
+
+  <Choices$Write>.OpenTTD
+
+Messages from the game go into <Wimp$ScrapDir>.OpenTTDlog. Every 10
+seconds it also records how much memory the game is using, which is
+useful if something goes wrong.
+
+
+Options
+-------
+You can edit the Run line in !Run to change how the game starts:
+
+  -b 32bpp-anim    animated water and lights (slower than the default
+                   -b 32bpp-optimized)
+  -v sdl:threads   draw the screen from a separate thread (off by
+                   default on RISC OS)
+  -s null          turn sound off
+
+
+Source code
+-----------
+This build uses the unmodified OpenTTD 14.1 source from
+https://github.com/OpenTTD/OpenTTD (tag 14.1), plus the small RISC OS
+patch in docs.riscos-patch. It was built with the GCCSDK GCC 10.2
+cross compiler and SDL 2.26 (RISC OS video driver).
+
+OpenGFX is licensed under the GNU GPL v2. The OpenSFX sounds are
+licensed under CC-BY-SA 3.0. See docs.OpenGFX-copyright and
+docs.OpenSFX-copyright.

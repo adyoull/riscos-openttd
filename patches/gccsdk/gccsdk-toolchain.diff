@@ -1,0 +1,47 @@
+diff --git a/autobuilder/develop/gcc/setvars b/autobuilder/develop/gcc/setvars
+index 2f47e99..31c3048 100644
+--- a/autobuilder/develop/gcc/setvars
++++ b/autobuilder/develop/gcc/setvars
+@@ -267,14 +267,15 @@ copy_link_gcc
+ # Make sure we get the system bzip2 and not the cross compiled version.
+ # This won't be a problem the first time we build this package because cross compiled bzip2
+ # won't exist yet, but if we rebuild gcc later, then we will pick up the wrong bzip2.
+-PATH=/usr/bin:$PATH ./contrib/download_prerequisites
++if ls ${WGET_CACHE:-$HOME/riscos/dl-cache}/gmp-6.2.1.tar.* >/dev/null 2>&1; then for pr in gmp:gmp-6.2.1 mpfr:mpfr-4.1.0 mpc:mpc-1.2.1; do n=${pr%%:*}; d=${pr#*:}; [ -d ../$d ] || tar xf ${WGET_CACHE:-$HOME/riscos/dl-cache}/$d.tar.* -C ..; ln -sfn ../$d $n; done; else PATH=/usr/bin:$PATH ./contrib/download_prerequisites; fi
+ 
+ build_cross_compiler
+ build_dynamic_linker
+ install_cross_compiler_to_env
+ 
+-build_native_compiler
+-build_native_binutils
++[ "$AB_SKIP_NATIVE" = yes ] || build_native_compiler
++[ "$AB_SKIP_NATIVE" = yes ] || build_native_binutils
++[ "$AB_SKIP_NATIVE" = yes ] && exit 0
+ 
+ do_copy_and_suffix_swap() {
+   local suffix
+diff --git a/gcc4/Makefile b/gcc4/Makefile
+index 541ef4d..8c537a2 100644
+--- a/gcc4/Makefile
++++ b/gcc4/Makefile
+@@ -36,15 +36,15 @@ AUTOCONF_FOR_GCC_VERSION=2.64
+ AUTOMAKE_FOR_GCC_VERSION=1.11.1
+ LIBTOOL_FOR_GCC_VERSION=2.4.2
+ GCC_VERSION=$(GCCSDK_SUPPORTED_GCC_RELEASE)
+-GCC_USE_SCM=yes
++GCC_USE_SCM=no
+ GCC_SCM_PATH=branches/gcc-4_7-branch
+ NEWLIB_VERSION=1.19.0
+ NEWLIB_USE_SCM=no
+ GDB_VERSION=7.2
+-GMP_VERSION=5.0.1
+-MPFR_VERSION=3.0.1
++GMP_VERSION=5.1.3
++MPFR_VERSION=3.1.4
+ MPC_VERSION=1.1.0
+-GCC_USE_PPL_CLOOG=yes
++GCC_USE_PPL_CLOOG=no
+ PPL_VERSION=1.2
+ CLOOG_VERSION=0.15.11
+ GCC_USE_LTO=yes

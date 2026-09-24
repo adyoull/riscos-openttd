@@ -1,0 +1,43 @@
+| !Run for !OpenTTD - RISC OS port of OpenTTD 14.1
+| Built with GCCSDK GCC 10.2 (arm-riscos-gnueabihf), statically linked.
+
+Set OpenTTD$Dir <Obey$Dir>
+IconSprites <OpenTTD$Dir>.!Sprites
+| Sprite for the icon bar icon shown while the game runs in a window.
+Set SDL$IconSprite !openttd
+
+| --- Runtime support -------------------------------------------------
+RMEnsure SharedUnixLibrary 1.16 IfThere System:Modules.SharedULib Then RMLoad System:Modules.SharedULib
+RMEnsure SharedUnixLibrary 1.16 Error OpenTTD needs SharedUnixLibrary 1.16 or later. Install it with PackMan.
+RMEnsure ARMEABISupport 0 IfThere System:Modules.ARMEABISupport Then RMLoad System:Modules.ARMEABISupport
+RMEnsure ARMEABISupport 0 Error OpenTTD needs the ARMEABISupport module. Install it with PackMan.
+If "<Alias$@RunType_E1F>"="" Then Error OpenTTD needs !SharedLibs to run ELF programs. Install SharedLibs with PackMan and make sure the Filer has seen it.
+
+| --- Sound (optional; needs DigitalRenderer) -----------------------
+Set OpenTTD$Sound -s sdl
+RMEnsure DigitalRenderer 0.51 IfThere System:Modules.DRenderer Then RMLoad System:Modules.DRenderer
+RMEnsure DigitalRenderer 0.51 Set OpenTTD$Sound -s null
+
+| --- Memory ---------------------------------------------------------
+| The C heap lives in a dynamic area called "OpenTTD Heap" (up to 512MB),
+| which is removed when the game quits.
+WimpSlot -min 32768K -max 32768K
+| --- Display ---------------------------------------------------------
+| OpenTTD$Display: "fullscreen" (switches to a screen mode of that size)
+|                  or "windowed" (a desktop window of that size).
+| OpenTTD$Size:    width x height, e.g. 1280x720. Smaller runs faster.
+Unset OpenTTD$Display
+Unset OpenTTD$Size
+| Default: a 1024x768 desktop window. Put a | in front of these two lines
+| to use the choices from Game Options > Graphics instead.
+Set OpenTTD$Display windowed
+Set OpenTTD$Size 1024x768
+Set OpenTTD$Video sdl
+If "<OpenTTD$Display>"<>"" Then Do Set OpenTTD$Video sdl:<OpenTTD$Display>
+Unset OpenTTD$Res
+If "<OpenTTD$Size>"<>"" Then Do Set OpenTTD$Res -r <OpenTTD$Size>
+
+| -b 32bpp-optimized is the quickest blitter (no water/light animation);
+| use -b 32bpp-anim for animation.
+| "Do" expands the <variables> before the command runs (Run does not).
+Do Run <OpenTTD$Dir>.openttd -v <OpenTTD$Video> <OpenTTD$Res> -b 32bpp-optimized -m null <OpenTTD$Sound> %*0 2><Wimp$ScrapDir>.OpenTTDlog

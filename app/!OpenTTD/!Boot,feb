@@ -1,0 +1,3 @@
+| !Boot for !OpenTTD
+If "<OpenTTD$Dir>"="" Then Set OpenTTD$Dir <Obey$Dir>
+IconSprites <Obey$Dir>.!Sprites

@@ -1,0 +1,8 @@
+dist/
+*.zip
+*.tgz
+*.o
+*.a
+build-ro/
+build-host/
+.DS_Store

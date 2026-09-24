@@ -1,0 +1,36 @@
+diff --git a/autobuilder/libraries/sdl/libsdl2/setvars b/autobuilder/libraries/sdl/libsdl2/setvars
+index cf04c90..e0f26d1 100644
+--- a/autobuilder/libraries/sdl/libsdl2/setvars
++++ b/autobuilder/libraries/sdl/libsdl2/setvars
+@@ -13,7 +13,7 @@ AB_PRECONF=":"
+ 
+ # Build normal and VFP versions by default. Note that only the VFP version currently has OpenGL support.
+ BUILD_NORMAL=yes
+-BUILD_VFP=yes
++BUILD_VFP=no
+ 
+ if [ "$RO_SHAREDLIBS" == "yes" ] ; then
+ AB_PACKAGES="libsdl2-dev libsdl2"
+@@ -21,11 +21,12 @@ else
+ AB_PACKAGES="libsdl2-dev"
+ fi
+ 
++rm -f configure  # force regeneration so the configure.ac patches always apply
+ ./autogen.sh
+ 
+ if [ "$BUILD_NORMAL" == "yes" ]; then
+   mkdir -p $S/build
+-  ( cd $S/build; $AB_CONFIG --disable-video-rpi --disable-video-opengles )
++  ( cd $S/build; $AB_CONFIG --disable-video-rpi --disable-video-opengles --disable-video-x11 --disable-video-wayland --disable-pulseaudio --disable-jack --disable-esd )
+ fi
+ 
+ if [ "$BUILD_VFP" == "yes" ]; then
+@@ -50,7 +51,7 @@ ab_make() {
+ ab_package() {
+   ab_create_app SDL2 Apps/Library libsdl2-dev
+ 
+-  ab_add_headers $GCCSDK_INSTALL_ENV/vfp/include/SDL2 $A/SDL2
++  ab_add_headers $GCCSDK_INSTALL_ENV/include/SDL2 $A/SDL2
+ 
+   if [ "$BUILD_NORMAL" == "yes" ] ; then
+     if [ -d "$S/build/build/.libs/" ]; then
