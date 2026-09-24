@@ -24,9 +24,14 @@ full screen only.
 - **Windowed mode.** `Wimp_Initialise` (version 380), a Wimp window with a
   title bar, back icon and close icon, `Wimp_Poll` handling, and redraws via
   `Wimp_UpdateWindow` with OS_SpriteOp 34.
-- **Full screen.** `SetWindowFullscreen` deletes the window and calls
-  `Wimp_CloseDown`, so the game becomes a single-tasking program in the
-  requested mode. In 32bpp it draws straight into screen memory.
+- **Full screen.** The game stays a Wimp task but stops calling `Wimp_Poll`,
+  so the desktop is suspended (single-tasking). In 32bpp it draws straight
+  into screen memory. Every screen mode change made while running as a
+  Wimp task goes through `Wimp_SetMode`, so when the game returns to a
+  window or quits, the desktop and the other tasks are told about the mode
+  and redrawn properly. (Closing the task down for full screen and changing
+  mode with `OS_ScreenMode` left the desktop greyed out and crashed other
+  tasks on the way back.)
 - **Icon bar.** An icon bar icon while windowed, using the sprite named in
   `SDL$IconSprite`. It has a menu with Quit.
 - **Keyboard.** Text is taken from `Key_Pressed` events (windowed) or the

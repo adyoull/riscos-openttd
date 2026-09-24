@@ -7,7 +7,9 @@ First RISC OS release of OpenTTD 14.1.
 - Statically linked ELF built with GCCSDK GCC 10.2 (`arm-riscos-gnueabihf`) and
   SDL 2.26.
 - Full screen (single-tasking, with RISC OS screen mode changes) and desktop
-  window modes, which can be switched in Game Options. The default is a
+  window modes, which can be switched in Game Options. Mode changes go
+  through the Wimp, so switching back to a window restores the desktop
+  cleanly. The default is a
   1024x768 window, set in `!Run`.
 - Icon bar icon with a Quit menu while windowed.
 - Keyboard text input in both modes.

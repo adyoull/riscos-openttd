@@ -1,8 +1,8 @@
 diff --git src/video/riscos/SDL_riscoswindow.c src/video/riscos/SDL_riscoswindow.c
-index f47d33a..3c445b3 100644
+index f47d33a..9d6f258 100644
 --- src/video/riscos/SDL_riscoswindow.c
 +++ src/video/riscos/SDL_riscoswindow.c
-@@ -31,9 +31,187 @@
+@@ -31,9 +31,192 @@
  #include "SDL_riscosvideo.h"
  #include "SDL_riscoswindow.h"
  
@@ -46,7 +46,7 @@ index f47d33a..3c445b3 100644
 +    return regs.r[2] + 1;
 +}
 +
-+static int
++int
 +RISCOS_WimpStart(_THIS)
 +{
 +    SDL_VideoData *vdata = (SDL_VideoData *) _this->driverdata;
@@ -54,6 +54,11 @@ index f47d33a..3c445b3 100644
 +    _kernel_oserror *err;
 +
 +    if (vdata->wimp_task != 0)
++        return 0;
++
++    /* Only become a Wimp task if the desktop is running. */
++    regs.r[0] = 0;
++    if (_kernel_swi(Wimp_ReadSysInfo, &regs, &regs) != NULL || regs.r[0] == 0)
 +        return 0;
 +
 +    regs.r[0] = 380;
@@ -190,7 +195,7 @@ index f47d33a..3c445b3 100644
      SDL_WindowData *driverdata;
  
      driverdata = (SDL_WindowData *) SDL_calloc(1, sizeof(*driverdata));
-@@ -42,20 +220,142 @@ RISCOS_CreateWindow(_THIS, SDL_Window * window)
+@@ -42,20 +225,141 @@ RISCOS_CreateWindow(_THIS, SDL_Window * window)
      }
      driverdata->window = window;
  
@@ -198,12 +203,9 @@ index f47d33a..3c445b3 100644
 -
 -    SDL_SetMouseFocus(window);
 +    if ((window->flags & SDL_WINDOW_FULLSCREEN) || vdata->wimp_window != 0) {
-+        /* Full screen: we own the whole screen. If we were running in a
-+           desktop window, stop being a Wimp task first so the desktop is
-+           suspended (single tasking) until we return to a window or quit. */
-+        if (vdata->wimp_task != 0 && vdata->wimp_window == 0) {
-+            RISCOS_WimpQuit(_this);
-+        }
++        /* Full screen: we own the whole screen. We stay a Wimp task but
++           stop calling Wimp_Poll, so the desktop is suspended (single
++           tasking) until we return to a window or quit. */
 +        window->flags |= SDL_WINDOW_FULLSCREEN;
 +        SDL_SetMouseFocus(window);
 +    } else {
@@ -249,9 +251,11 @@ index f47d33a..3c445b3 100644
 +        if (vdata->wimp_sdl_window == window) {
 +            RISCOS_WimpDeleteWindow(_this);
 +        }
-+        /* Stop being a Wimp task: the desktop is suspended (single tasking)
-+           until we go back to a window or quit. */
-+        RISCOS_WimpQuit(_this);
++        /* Stay a Wimp task (so every mode change goes through Wimp_SetMode
++           and the desktop comes back cleanly), but stop polling: the desktop
++           is suspended (single tasking) until we go back to a window or quit.
++           Closing down and re-initialising the task here left the desktop
++           greyed out and upset other tasks when coming back. */
 +        RISCOS_UpdateEigs(_this);
 +        SDL_SetMouseFocus(window);
 +        RISCOS_ApplyPointerVisibility(_this);
@@ -336,7 +340,7 @@ index f47d33a..3c445b3 100644
      if (!driverdata)
          return;
  
-@@ -63,6 +363,20 @@ RISCOS_DestroyWindow(_THIS, SDL_Window * window)
+@@ -63,6 +367,20 @@ RISCOS_DestroyWindow(_THIS, SDL_Window * window)
      window->driverdata = NULL;
  }
  

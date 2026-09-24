@@ -1,5 +1,5 @@
 diff --git src/video/riscos/SDL_riscosvideo.c src/video/riscos/SDL_riscosvideo.c
-index 4763011..ab8acac 100644
+index 4763011..47dba94 100644
 --- src/video/riscos/SDL_riscosvideo.c
 +++ src/video/riscos/SDL_riscosvideo.c
 @@ -83,6 +83,9 @@ RISCOS_CreateDevice(void)
@@ -12,15 +12,20 @@ index 4763011..ab8acac 100644
      device->GetWindowWMInfo = RISCOS_GetWindowWMInfo;
  
      device->CreateWindowFramebuffer = RISCOS_CreateWindowFramebuffer;
-@@ -113,6 +116,7 @@ RISCOS_VideoInit(_THIS)
+@@ -113,6 +116,12 @@ RISCOS_VideoInit(_THIS)
      if (RISCOS_InitModes(_this) < 0) {
          return -1;
      }
 +    RISCOS_UpdateEigs(_this);
++
++    /* 2026: become a Wimp task straight away (inside the desktop), so
++       every screen mode change, including starting full screen, goes
++       through Wimp_SetMode and the desktop is restored cleanly. */
++    RISCOS_WimpStart(_this);
  
      /* We're done! */
      return 0;
-@@ -122,6 +126,7 @@ static void
+@@ -122,6 +131,7 @@ static void
  RISCOS_VideoQuit(_THIS)
  {
      RISCOS_QuitEvents(_this);
