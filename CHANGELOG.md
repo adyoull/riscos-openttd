@@ -23,6 +23,8 @@ First RISC OS release of OpenTTD 14.1.
   size, with the mouse scaled to match (`SDL$WindowScale` in `!Run` to change).
 - Built with stack-clash protection, which fixes possible random crashes in
   functions with large stack frames (such as the train pathfinder).
+- The programs are RISC OS Absolute (AIF) files, made with a fixed elf2aif,
+  so `!SharedLibs` is no longer needed.
 - A faster NEON build (`openttd-fast`, Raspberry Pi 2 and later), used by
   `!Run` when present. The standard build is still included.
 - Direct-to-screen drawing in full screen, with ARGB to XBGR conversion done a

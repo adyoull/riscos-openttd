@@ -22,7 +22,6 @@ filetypes are kept.
 - RISC OS 5 on an ARMv7 or later machine with VFP, for example a Raspberry Pi 2,
   3, 4 or 400. It does **not** run on ARMv6 (Pi 1 / Zero), older ARM machines
   or RPCEmu.
-- `!SharedLibs` (so RISC OS can run ELF programs).
 - The `ARMEABISupport` module.
 - `SharedUnixLibrary` 1.16 or later.
 - Optional: the `DigitalRenderer` module, for sound.

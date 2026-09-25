@@ -9,8 +9,12 @@ BIN=$1; GFX=$2; SFX=$3
 OUT="$REPO_DIR/dist"; APP="$OUT/!OpenTTD"
 rm -rf "$OUT"; mkdir -p "$OUT"
 cp -a "$REPO_DIR/app/!OpenTTD" "$APP"
-cp "$BIN" "$APP/openttd,e1f"
-[ -f "$OPENTTD_SRC/build-fast/openttd-stripped" ] && cp "$OPENTTD_SRC/build-fast/openttd-stripped" "$APP/openttd-fast,e1f"
+# The programs are shipped as Absolute (AIF) files, made with the fixed
+# elf2aif in tools/elf2aif (build it first: make -C tools/elf2aif, or see
+# its README), so !SharedLibs isn't needed.
+E2A="${ELF2AIF:-$REPO_DIR/tools/elf2aif/elf2aif}"
+"$E2A" -e "$BIN" "$APP/openttd,ff8"
+[ -f "$OPENTTD_SRC/build-fast/openttd-stripped" ] && "$E2A" -e "$OPENTTD_SRC/build-fast/openttd-stripped" "$APP/openttd-fast,ff8"
 B="$OPENTTD_SRC/build-ro"
 mkdir -p "$APP/baseset"
 cp "$B"/baseset/*.grf "$B"/baseset/*.ob[gsm] "$B"/baseset/opntitle.dat "$APP/baseset/"

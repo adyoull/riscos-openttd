@@ -3,6 +3,13 @@
 Changes made by `openttd-14.1-riscos.patch` to OpenTTD 14.1, newest first.
 See [PORTING-NOTES](../../docs/PORTING-NOTES.md) for more detail.
 
+## 2026-09-25 (later)
+
+### Absolute files
+- The programs are now converted to RISC OS Absolute (AIF) files with the
+  fixed `tools/elf2aif` (`-e`), so they no longer need !SharedLibs.
+  `!Run` no longer checks for it. Tested on a Pi 4.
+
 ## 2026-09-25
 
 ### Stack safety

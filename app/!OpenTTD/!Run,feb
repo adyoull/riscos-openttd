@@ -1,5 +1,6 @@
 | !Run for !OpenTTD - RISC OS port of OpenTTD 14.1
-| Built with GCCSDK GCC 10.2 (arm-riscos-gnueabihf), statically linked.
+| Built with GCCSDK GCC 10.2 (arm-riscos-gnueabihf), statically linked and
+| converted to Absolute (AIF) files, so !SharedLibs isn't needed.
 
 Set OpenTTD$Dir <Obey$Dir>
 IconSprites <OpenTTD$Dir>.!Sprites
@@ -11,7 +12,6 @@ RMEnsure SharedUnixLibrary 1.16 IfThere System:Modules.SharedULib Then RMLoad Sy
 RMEnsure SharedUnixLibrary 1.16 Error OpenTTD needs SharedUnixLibrary 1.16 or later. Install it with PackMan.
 RMEnsure ARMEABISupport 0 IfThere System:Modules.ARMEABISupport Then RMLoad System:Modules.ARMEABISupport
 RMEnsure ARMEABISupport 0 Error OpenTTD needs the ARMEABISupport module. Install it with PackMan.
-If "<Alias$@RunType_E1F>"="" Then Error OpenTTD needs !SharedLibs to run ELF programs. Install SharedLibs with PackMan and make sure the Filer has seen it.
 
 | --- Sound (optional; needs DigitalRenderer) -----------------------
 Set OpenTTD$Sound -s sdl
