@@ -5,6 +5,18 @@ See [PORTING-NOTES](../../docs/PORTING-NOTES.md) for more detail.
 
 ## 2026-09-25
 
+### Stack safety
+- Both builds are compiled with `-fstack-clash-protection`. GCC 10 programs on
+  RISC OS grow their stack one 4 KB page at a time, triggered by touching a
+  guard page. A function with a frame bigger than a page can jump past the
+  guard page and crash at random, depending on how deep the stack has grown.
+  OpenTTD has 40 such functions, including the YAPF train and road
+  pathfinders (up to 10.6 KB) and the savegame map loaders. They now probe
+  each page in turn. `tools/check-stack-probes.py` lists any large frames
+  left without probes. The remaining ones are in UnixLib (`execve`, the DNS
+  resolver) and in libstdc++'s wide-character number formatting, none of
+  which OpenTTD uses in normal play.
+
 ### Speed
 - `src/video/sdl2_default_v.cpp`: when built with NEON (the `openttd-fast`
   build), the red/blue swap in `Paint()` handles 16 pixels at a time with

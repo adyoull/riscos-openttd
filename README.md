@@ -82,7 +82,7 @@ sources:
 | `patches/gccsdk` | Changes to the GCCSDK autobuilder recipes (GCC 10.2, SDL2) |
 | `patches/unixlib` | UnixLib fixes: wide characters, a high-resolution clock, precise `nanosleep`, no mmap |
 | `build/` | CMake toolchain file and build/package scripts |
-| `tools/` | Small helpers used when building without full network access |
+| `tools/` | `check-stack-probes.py`, and small helpers for building without full network access |
 
 See [BUILDING.md](BUILDING.md) to build it yourself, [docs/PORTING-NOTES.md](docs/PORTING-NOTES.md)
 for what the patches do and why, and [CHANGELOG.md](CHANGELOG.md) for the history. There are detailed change

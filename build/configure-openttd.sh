@@ -5,9 +5,9 @@
 . "$(dirname "$0")/env.sh"
 # OPENTTD_FAST=1: the NEON build (Raspberry Pi 2 and later) in build-fast.
 if [ "$OPENTTD_FAST" = 1 ]; then
-  BDIR=build-fast; ARCHFLAGS="-mfpu=neon-vfpv4 -mtune=cortex-a72"
+  BDIR=build-fast; ARCHFLAGS="-mfpu=neon-vfpv4 -mtune=cortex-a72 -fstack-clash-protection"
 else
-  BDIR=build-ro;   ARCHFLAGS="-mtune=cortex-a72"
+  BDIR=build-ro;   ARCHFLAGS="-mtune=cortex-a72 -fstack-clash-protection"
 fi
 mkdir -p "$OPENTTD_SRC/$BDIR"
 cd "$OPENTTD_SRC/$BDIR"
