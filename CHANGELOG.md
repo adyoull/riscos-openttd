@@ -6,7 +6,7 @@ SDL2 is listed in more detail here:
 - [OpenTTD changes](patches/openttd/CHANGELOG.md)
 - [SDL2 changes](gccsdk-overlay/autobuilder/libraries/sdl/libsdl2/CHANGELOG.md)
 
-## 14.1-riscos2 (not yet released)
+## 14.1-riscos2 (tag '14.1.2')
 
 Changes since 14.1-riscos1.
 
