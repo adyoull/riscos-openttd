@@ -6,7 +6,26 @@ SDL2 is listed in more detail here:
 - [OpenTTD changes](patches/openttd/CHANGELOG.md)
 - [SDL2 changes](gccsdk-overlay/autobuilder/libraries/sdl/libsdl2/CHANGELOG.md)
 
-## 14.1-riscos1 (not yet released)
+## 14.1-riscos2 (not yet released)
+
+Changes since 14.1-riscos1.
+
+- The programs are now RISC OS Absolute files, so `!SharedLibs` is no longer
+  needed. They're converted with a fixed elf2aif (see Tools below).
+- In high resolution desktop modes (EX0 EY0, often called 180dpi) the window
+  is drawn at double size so it isn't tiny, and the mouse is scaled to
+  match. `SDL$WindowScale` in `!Run` changes or turns this off.
+- The game now shows up as "OpenTTD" in the Task Manager, with its own icon
+  and name on the icon bar. The icon used to come from a system variable
+  (`SDL$IconSprite`) that other SDL programs then picked up, so they showed
+  the OpenTTD icon too. `!Run` now clears that variable.
+
+### Tools
+
+- `tools/elf2aif`: elf2aif with a fix for programs over 32MB, which used to
+  crash on start-up after conversion.
+
+## 14.1-riscos1 (tag `14.1.1`)
 
 The first RISC OS release of OpenTTD 14.1.
 
@@ -17,14 +36,9 @@ The first RISC OS release of OpenTTD 14.1.
   single-tasking and changes the screen mode to the resolution you pick.
   The desktop comes back cleanly afterwards.
 - The start-up display mode and size can be set with two lines in `!Run`.
-- The game has an icon bar icon while it runs, with a Quit option. It shows
-  up as "OpenTTD" in the Task Manager.
+- The game has an icon bar icon while it runs, with a Quit option.
 - Typing works in text boxes, and the scroll wheel zooms the map, in both a
   window and full screen.
-- In high resolution desktop modes (EX0 EY0, often called 180dpi) the window
-  is drawn at double size so it isn't tiny, and the mouse is scaled to
-  match. `SDL$WindowScale` in `!Run` changes or turns this off.
-- The programs are RISC OS Absolute files, so `!SharedLibs` isn't needed.
 - There are two copies of the program: `openttd-fast`, which uses the NEON
   instructions of the Raspberry Pi 2 and later, and the standard `openttd`.
   `!Run` uses the fast one.
@@ -49,8 +63,6 @@ The first RISC OS release of OpenTTD 14.1.
 
 ### Tools
 
-- `tools/elf2aif`: elf2aif with a fix for programs over 32MB, which used to
-  crash on start-up after conversion.
 - `tools/check-stack-probes.py`: lists functions in a program that could
   jump past the stack guard page.
 

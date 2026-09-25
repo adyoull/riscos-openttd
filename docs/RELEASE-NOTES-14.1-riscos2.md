@@ -1,4 +1,15 @@
-OpenTTD 14.1 for RISC OS, first release.
+OpenTTD 14.1 for RISC OS, second release.
+
+**What's new since 14.1-riscos1**
+
+- `!SharedLibs` is no longer needed. The game programs are now RISC OS
+  Absolute files.
+- In high resolution desktop modes (EX0 EY0, "180dpi") the game window is
+  drawn at double size, with the mouse scaled to match. The `SDL$WindowScale`
+  line in `!Run` changes or turns this off.
+- The game shows up as "OpenTTD" in the Task Manager, with its own icon bar
+  icon. Other SDL programs no longer pick up the OpenTTD icon after it has
+  run.
 
 **Downloads**
 
@@ -8,6 +19,8 @@ OpenTTD 14.1 for RISC OS, first release.
   requires to be available alongside the binary.
 
 Unzip on RISC OS (SparkFS, !InfoZip or similar) so the filetypes are kept.
+To upgrade, replace your old `!OpenTTD`. Your settings and saved games are in
+`<Choices$Write>.OpenTTD` and aren't touched.
 
 **You need**
 
@@ -16,19 +29,6 @@ Unzip on RISC OS (SparkFS, !InfoZip or similar) so the filetypes are kept.
 - ARMEABISupport and SharedUnixLibrary 1.16 or later, both from !PackMan.
 - DigitalRenderer if you want sound.
 - About 128MB of free memory.
-
-`!SharedLibs` isn't needed.
-
-**What's in it**
-
-- Plays in a desktop window or full screen. You can switch while playing.
-- Icon bar icon, typing, and scroll wheel zoom.
-- Double-size window in high resolution (EX0 EY0) desktop modes.
-- A faster NEON build for the Pi 2 and later, used by default.
-
-**Not yet**
-
-- No music, online content downloads or TrueType fonts.
 
 The full list of changes is in CHANGELOG.md. Please report problems on the
 Issues page, and include `<Wimp$ScrapDir>.OpenTTDlog` if you can.
