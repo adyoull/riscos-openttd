@@ -39,7 +39,7 @@
 #include "elf/common.h"
 #include "elf/external.h"
 
-#define COPYRIGHT "Copyright (c) 2006-2013 GCCSDK Developers, 2026 Andrew Youll"
+#define COPYRIGHT "Copyright (c) 2006-2013 GCCSDK Developers"
 #define DISCLAIMER "This is free software; see the source for copying conditions.  There is NO\n" \
                    "warranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.\n"
 

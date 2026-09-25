@@ -1,14 +1,5 @@
 --- elf2aif.c.orig
 +++ elf2aif.c
-@@ -39,7 +39,7 @@
- #include "elf/common.h"
- #include "elf/external.h"
- 
--#define COPYRIGHT "Copyright (c) 2006-2013 GCCSDK Developers"
-+#define COPYRIGHT "Copyright (c) 2006-2013 GCCSDK Developers, 2026 Andrew Youll"
- #define DISCLAIMER "This is free software; see the source for copying conditions.  There is NO\n" \
-                    "warranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.\n"
- 
 @@ -78,6 +78,7 @@
  static phdr_list_t *elf_phdrlistP;
  static const char *elf_filename;
@@ -154,7 +145,8 @@
        if (opt_verbose)
 -	printf ("Writing EABI entry code at offset 0x%x\n", sizeof (aifcode));
 +	printf ("Writing EABI entry code at offset 0x%x\n", (unsigned) sizeof (aifcode));
-+
+ 
+-      entrycode[4] |= (exec_addr - load_addr - (sizeof (aifcode) + 4*4 + 8)) >> 2;
 +      /* Position independent jump from the header (which a BL can always
 +         reach) to the relocation code at the end of the image, however
 +         big the image is.  LR is left alone, so the relocation code still
@@ -169,8 +161,7 @@
 +
 +      assert (tramp_off == sizeof (aifcode) + 6 * 4);
 +      trampoline[2] = (uint32_t) aifend - (tramp_off + 12);
- 
--      entrycode[4] |= (exec_addr - load_addr - (sizeof (aifcode) + 4*4 + 8)) >> 2;
++
 +      if (!e2a_branch (0xEA000000, sizeof (aifcode) + 4*4,
 +                       exec_addr - load_addr, &inst))
 +	{
