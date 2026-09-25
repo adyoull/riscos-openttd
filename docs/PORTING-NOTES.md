@@ -32,8 +32,9 @@ full screen only.
   and redrawn properly. (Closing the task down for full screen and changing
   mode with `OS_ScreenMode` left the desktop greyed out and crashed other
   tasks on the way back.)
-- **Icon bar.** An icon bar icon while windowed, using the sprite named in
-  `SDL$IconSprite`. It has a menu with Quit.
+- **Icon bar.** An icon bar icon with a Quit menu. The task name and sprite
+  come from the application directory (`!OpenTTD`), or the generic
+  `application` sprite if there isn't one.
 - **Keyboard.** Text is taken from `Key_Pressed` events (windowed) or the
   keyboard buffer (full screen) and sent as `SDL_TEXTINPUT`.
 - **Scroll wheel.** Read with `OS_Pointer 2` on every poll and sent as

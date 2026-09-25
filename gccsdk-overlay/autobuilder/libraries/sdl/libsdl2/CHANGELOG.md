@@ -4,6 +4,24 @@ Changes made by the `.p` patches in this directory to SDL 2.26.0's RISC OS video
 driver (`src/video/riscos`), and to the GCCSDK autobuilder recipe, newest
 first.
 
+## 2026-09-25 (evening)
+
+### Program name and icon bar sprite
+- `SDL_riscoswindow.c`, `SDL_riscosevents.c`: the Wimp task name, icon bar
+  sprite and icon bar menu title now come from the program's application
+  directory. A program at `...!OpenTTD.openttd` is "OpenTTD" with the sprite
+  `!OpenTTD` (Wimp sprite names ignore case). If there's no such sprite, it
+  uses the generic `application` sprite. `SDL_HINT_APP_NAME` overrides the
+  name. The task used to be called "SDL", and the sprite came from the
+  global `SDL$IconSprite` variable, which other SDL programs picked up after
+  OpenTTD had run. From the riscos-mesa SDL overlay.
+
+### High resolution modes with other sprite types
+- `SDL_riscosframebuffer.c`: the scaled window plot now allows for the
+  sprite's own resolution, so a 90dpi sprite (used when the screen isn't in
+  a 16 million colour mode) isn't doubled twice in an EX0 EY0 mode. From
+  the riscos-mesa SDL overlay.
+
 ## 2026-09-25 (later)
 
 ### High resolution desktop modes

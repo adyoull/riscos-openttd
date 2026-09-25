@@ -4,8 +4,10 @@
 
 Set OpenTTD$Dir <Obey$Dir>
 IconSprites <OpenTTD$Dir>.!Sprites
-| Sprite for the icon bar icon shown while the game runs in a window.
-Set SDL$IconSprite !openttd
+| SDL finds the icon bar sprite (!OpenTTD) and name from the application
+| directory. Older versions set this variable; clear it so it doesn't
+| affect other SDL programs.
+Unset SDL$IconSprite
 
 | --- Runtime support -------------------------------------------------
 RMEnsure SharedUnixLibrary 1.16 IfThere System:Modules.SharedULib Then RMLoad System:Modules.SharedULib
