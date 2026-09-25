@@ -4,7 +4,8 @@ A port of [OpenTTD](https://www.openttd.org/) 14.1, the open source transport
 simulation game based on Transport Tycoon Deluxe, to RISC OS 5.
 
 It runs full screen or in a desktop window, with sound, and includes the free
-OpenGFX graphics, so you don't need the original game files.
+OpenGFX graphics, so you don't need the original game files. The programs are
+RISC OS Absolute files, so `!SharedLibs` isn't needed.
 
 ## Download
 
@@ -43,8 +44,11 @@ Double-click `!OpenTTD`. By default it opens in a 1024x768 desktop window.
   window. You can switch while the game is running.
 - **Resolution** changes the screen mode in full screen, or the window size in a
   window.
-- While windowed there is an icon bar icon: click Select to bring the window to
-  the front, or use Menu > Quit.
+- While the game runs there's an icon bar icon: click Select to bring the
+  window to the front, or use Menu > Quit.
+- The scroll wheel zooms the map.
+- In a high resolution desktop mode (EX0 EY0, "180dpi") the window is drawn at
+  double size. To change that, see the `SDL$WindowScale` line in `!Run`.
 
 To change how the game starts, edit these lines in `!Run`:
 
@@ -80,7 +84,11 @@ sources:
 | `gccsdk-overlay/…/libsdl2` | SDL 2.26 RISC OS video driver changes (GCCSDK autobuilder `.p` patches) |
 | `patches/gccsdk` | Changes to the GCCSDK autobuilder recipes (GCC 10.2, SDL2) |
 | `patches/unixlib` | UnixLib fixes: wide characters, a high-resolution clock, precise `nanosleep`, no mmap |
+
+The SDL2 and UnixLib changes are linked into the OpenTTD program itself.
+Nothing on your machine is replaced, and other programs aren't affected.
 | `build/` | CMake toolchain file and build/package scripts |
+| `tools/elf2aif` | elf2aif (ELF to Absolute converter) with a fix for programs over 32MB |
 | `tools/` | `check-stack-probes.py`, and small helpers for building without full network access |
 
 See [BUILDING.md](BUILDING.md) to build it yourself, [docs/PORTING-NOTES.md](docs/PORTING-NOTES.md)

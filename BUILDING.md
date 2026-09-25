@@ -85,7 +85,11 @@ This script:
 - checks out tag 14.1 and applies `patches/openttd/openttd-14.1-riscos.patch`;
 - builds the host tools (`build-host`);
 - configures the cross build with `build/toolchain-riscos.cmake`;
-- builds `build-ro/openttd` and a stripped copy.
+- builds the standard program in `build-ro` and the NEON one
+  (`openttd-fast`) in `build-fast`, both with `-fstack-clash-protection`.
+
+`tools/check-stack-probes.py build-ro/openttd` should list only a handful of
+library functions.
 
 To re-link after changing a library, run `rm build-ro/openttd` and then
 `make openttd`.
@@ -98,6 +102,15 @@ $GCCSDK_INSTALL_ENV/bin/arm-riscos-gnueabihf-addr2line -f -C -e build-ro/openttd
 ```
 
 ## 5. Package
+
+Build elf2aif first. The package script uses it to turn both programs into
+RISC OS Absolute files:
+
+```sh
+make -C riscos-openttd/tools/elf2aif GCCSDK_SRC=~/riscos/gccsdk
+```
+
+Then:
 
 ```sh
 riscos-openttd/build/package.sh ~/riscos/OpenTTD/build-ro/openttd-stripped \
