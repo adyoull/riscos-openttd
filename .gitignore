@@ -6,3 +6,14 @@ dist/
 build-ro/
 build-host/
 .DS_Store
+
+# Working notes, never committed
+CLAUDE.md
+claude.md
+**/CLAUDE.md
+**/claude.md
+START-HERE.md
+start-here.md
+*START-HERE*.md
+*start-here*.md
+build-fast/
