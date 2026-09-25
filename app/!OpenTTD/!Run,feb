@@ -37,7 +37,14 @@ If "<OpenTTD$Display>"<>"" Then Do Set OpenTTD$Video sdl:<OpenTTD$Display>
 Unset OpenTTD$Res
 If "<OpenTTD$Size>"<>"" Then Do Set OpenTTD$Res -r <OpenTTD$Size>
 
+| --- Program -------------------------------------------------------
+| openttd-fast is built for the NEON instructions of the Raspberry Pi 2
+| and later (and other Cortex-A machines) and is used when it's there.
+| To use the standard build instead, put a | in front of the IfThere line.
+Set OpenTTD$Binary openttd
+IfThere <OpenTTD$Dir>.openttd-fast Then Set OpenTTD$Binary openttd-fast
+
 | -b 32bpp-optimized is the quickest blitter (no water/light animation);
 | use -b 32bpp-anim for animation.
 | "Do" expands the <variables> before the command runs (Run does not).
-Do Run <OpenTTD$Dir>.openttd -v <OpenTTD$Video> <OpenTTD$Res> -b 32bpp-optimized -m null <OpenTTD$Sound> %*0 2><Wimp$ScrapDir>.OpenTTDlog
+Do Run <OpenTTD$Dir>.<OpenTTD$Binary> -v <OpenTTD$Video> <OpenTTD$Res> -b 32bpp-optimized -m null <OpenTTD$Sound> %*0 2><Wimp$ScrapDir>.OpenTTDlog

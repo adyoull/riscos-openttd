@@ -73,6 +73,18 @@ seconds it also records how much memory the game is using, which is
 useful if something goes wrong.
 
 
+Two builds
+----------
+There are two copies of the game in !OpenTTD: openttd-fast uses the NEON
+instructions of the Raspberry Pi 2 and later (and other Cortex-A
+machines), and openttd is the standard build. !Run uses openttd-fast when
+it's there. To use the standard one, put a | in front of the IfThere line
+in !Run.
+
+To see where the time goes, open the Frame rate window from the help
+menu (the "?" button on the toolbar).
+
+
 Options
 -------
 You can edit the Run line in !Run to change how the game starts:

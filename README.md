@@ -28,6 +28,11 @@ filetypes are kept.
 - Optional: the `DigitalRenderer` module, for sound.
 - About 128MB of free memory.
 
+The download has two builds of the game: `openttd-fast`, which uses the
+NEON instructions of the Pi 2 and later (and other Cortex-A machines), and
+the standard `openttd`. `!Run` uses `openttd-fast` when it's there. To use
+the standard one, put a `|` in front of the `IfThere` line in `!Run`.
+
 All of these can be installed with !PackMan.
 
 ## Running

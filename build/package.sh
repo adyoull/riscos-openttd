@@ -1,6 +1,7 @@
 #!/bin/bash -e
 # Assemble !OpenTTD and zip it with RISC OS filetypes.
 #   package.sh <openttd binary> <OpenGFX dir> [<OpenSFX dir>]
+# If build-fast/openttd-stripped exists it's added as openttd-fast.
 # Output goes in ./dist.
 . "$(dirname "$0")/env.sh"
 BIN=$1; GFX=$2; SFX=$3
@@ -9,6 +10,7 @@ OUT="$REPO_DIR/dist"; APP="$OUT/!OpenTTD"
 rm -rf "$OUT"; mkdir -p "$OUT"
 cp -a "$REPO_DIR/app/!OpenTTD" "$APP"
 cp "$BIN" "$APP/openttd,e1f"
+[ -f "$OPENTTD_SRC/build-fast/openttd-stripped" ] && cp "$OPENTTD_SRC/build-fast/openttd-stripped" "$APP/openttd-fast,e1f"
 B="$OPENTTD_SRC/build-ro"
 mkdir -p "$APP/baseset"
 cp "$B"/baseset/*.grf "$B"/baseset/*.ob[gsm] "$B"/baseset/opntitle.dat "$APP/baseset/"

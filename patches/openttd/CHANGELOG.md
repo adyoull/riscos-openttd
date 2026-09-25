@@ -3,6 +3,17 @@
 Changes made by `openttd-14.1-riscos.patch` to OpenTTD 14.1, newest first.
 See [PORTING-NOTES](../../docs/PORTING-NOTES.md) for more detail.
 
+## 2026-09-25
+
+### Speed
+- `src/video/sdl2_default_v.cpp`: when built with NEON (the `openttd-fast`
+  build), the red/blue swap in `Paint()` handles 16 pixels at a time with
+  `vld4q_u8`/`vst4q_u8`. The standard build keeps the one-word-at-a-time
+  loop.
+- The build system now also makes `openttd-fast`, compiled with
+  `-mfpu=neon-vfpv4` so GCC can use NEON throughout the game (Raspberry Pi 2
+  and later). `!Run` uses it when it's there.
+
 ## 2026-09-24
 
 ### Game Options pause
