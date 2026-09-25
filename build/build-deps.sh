@@ -20,3 +20,13 @@ nm -A "$GCCSDK_INSTALL_ENV/lib/libSDL2.a" 2>/dev/null | grep -q RISCOS_SetWindow
 # OpenTTD is linked statically: keep the shared SDL out of the way.
 mkdir -p "$GCCSDK_INSTALL_ENV/lib-shared-aside"
 mv "$GCCSDK_INSTALL_ENV"/lib/libSDL2*.so* "$GCCSDK_INSTALL_ENV/lib-shared-aside/" 2>/dev/null || true
+
+# midisynth (General MIDI synth for the music driver), from
+# https://github.com/adyoull/riscos-midisynth. Without it the game is
+# built with no music driver.
+: "${MIDISYNTH_SRC:=$HOME/riscos/riscos-midisynth}"
+if [ -f "$MIDISYNTH_SRC/include/midisynth.h" ]; then
+  make -C "$MIDISYNTH_SRC" install GCCSDK_INSTALL_ENV="$GCCSDK_INSTALL_ENV"
+else
+  echo "note: no midisynth at $MIDISYNTH_SRC - OpenTTD will be built without music"
+fi

@@ -3,6 +3,16 @@
 Changes made by `openttd-14.1-riscos.patch` to OpenTTD 14.1, newest first.
 See [PORTING-NOTES](../../docs/PORTING-NOTES.md) for more detail.
 
+## 2026-09-27
+
+### Music
+- New `midisynth` music driver (`src/music/midisynth_m.cpp`). It plays the
+  MIDI music (OpenMSX, or the original TTD music) through a General MIDI
+  SoundFont with the riscos-midisynth library, mixed with the sound
+  effects. Built when `libmidisynth.a` is installed.
+- `!Run` uses `-m midisynth` when there's a SoundFont (`MIDISynth$SoundFont`
+  or `!OpenTTD.SoundFont`) and sound is on, and `-m null` otherwise.
+
 ## 2026-09-26
 
 ### Sound

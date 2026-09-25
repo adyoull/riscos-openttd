@@ -14,6 +14,7 @@
 | `src/spritecache.cpp` | Sprite cache capped at 128 MiB, and allocated without the 1.5x probe |
 | `src/textfile_gui.cpp` | `GetTextfile` results are cached. Only `.txt`/`.md` are probed on RISC OS (this was a multi-second pause opening Game Options) |
 | `src/video/sdl2_default_v.cpp` | The RISC OS screen is XBGR8888: draw into an XRGB8888 shadow surface and swap red and blue one word at a time in `Paint()` |
+| `src/music/midisynth_m.cpp`, `CMakeLists.txt` | New `midisynth` music driver: renders MIDI through a SoundFont with the [midisynth](https://github.com/adyoull/riscos-midisynth) library, into OpenTTD's own mixer (like the FluidSynth driver). Built when `libmidisynth.a` is found |
 | `src/video/sdl2_v.cpp` | Memory report every 10s. `-v sdl:windowed` / `sdl:fullscreen`. Full screen toggles by recreating the window. Drawing from the game thread is off by default |
 
 ## SDL 2.26 RISC OS driver (`gccsdk-overlay/…/libsdl2`)
@@ -57,6 +58,21 @@ full screen only.
 - It's listed before the `dsp` driver. If the modules aren't loaded it
   declines, and SDL uses `dsp` (UnixLib's `/dev/dsp` emulation over
   DigitalRenderer) instead.
+
+## Music (`midisynth` driver)
+
+- RISC OS has no General MIDI synthesiser (its MIDI module drives external
+  hardware), so the music is synthesised in software. The
+  [riscos-midisynth](https://github.com/adyoull/riscos-midisynth) library
+  wraps TinySoundFont, and is a separate project so other programs can use
+  it too.
+- The driver passes its render function to `MxSetMusicSource`, so the music
+  is mixed with the sound effects and goes out through the same SDL audio
+  driver. It has no sound output of its own.
+- SoundFont: `-m midisynth:soundfont=<file>`, else `MIDISynth$SoundFont`
+  (set by `!MIDISynth`), else `<OpenTTD$Dir>.SoundFont` (from the Music zip).
+  `!Run` only selects the driver when one of these exists, because a
+  driver named with `-m` that fails to start stops the game.
 
 ## UnixLib (`patches/unixlib`)
 

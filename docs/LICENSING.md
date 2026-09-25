@@ -35,6 +35,8 @@ The release binary is statically linked, so it contains:
 | libpng 1.6 | libpng licence |
 | liblzma (xz) | Public domain |
 | LZO 2 | GPL v2 or later |
+| riscos-midisynth (music driver library) | MIT |
+| TinySoundFont (inside riscos-midisynth) | MIT |
 
 Bundled data:
 
@@ -42,6 +44,8 @@ Bundled data:
 |-----------|---------|
 | OpenGFX 7.1 | GPL v2 |
 | OpenSFX | CC-BY-SA 3.0 (attribution in `docs.OpenSFX-copyright`) |
+| OpenMSX 0.4.2 (Music zip) | GPL v2 (`docs.OpenMSX-copyright`, `baseset.openmsx.readme`) |
+| TimGM6mb SoundFont (Music zip) | GPL v2 (`docs.SoundFont-licence`) |
 | OpenTTD's own base set files, language files and scripts | GPL v2 |
 
 ### Corresponding source

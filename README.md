@@ -14,6 +14,8 @@ Ready-to-run builds are on the [Releases](https://github.com/adyoull/riscos-open
 - `OpenTTD-14.1-riscos.zip`: the `!OpenTTD` application with OpenGFX.
 - `OpenTTD-14.1-riscos-OpenSFX.zip`: the OpenSFX sound effects. Unpack it over
   `!OpenTTD`.
+- `OpenTTD-14.1-riscos-Music.zip`: the OpenMSX music and a General MIDI
+  SoundFont to play it with. Unpack it over `!OpenTTD`.
 
 Unpack the zips on RISC OS (for example with SparkFS or !InfoZip) so the
 filetypes are kept.
@@ -67,7 +69,8 @@ game, including a memory report every 10 seconds, go to
 
 ## Known limitations
 
-- There's no music, because the port has no MIDI driver.
+- Music is synthesised in software, which takes some processor time. Turn it
+  off in the game's Music window, or change `-m midisynth` in `!Run`.
 - There's no online content download (no libcurl), and no TrueType fonts, so
   the game uses its sprite fonts.
 - It needs ARMv7 + VFP, so there's no Pi 1 / RPCEmu build yet.
@@ -89,6 +92,7 @@ sources:
 The SDL2 and UnixLib changes are linked into the OpenTTD program itself.
 Nothing on your machine is replaced, and other programs aren't affected.
 | `build/` | CMake toolchain file and build/package scripts |
+| `src/music/midisynth_m.cpp` (in the OpenTTD patch) | Music driver using [riscos-midisynth](https://github.com/adyoull/riscos-midisynth), a General MIDI synth library for RISC OS |
 | `tools/elf2aif` | elf2aif (ELF to Absolute converter) with a fix for programs over 32MB |
 | `tools/` | `check-stack-probes.py`, and small helpers for building without full network access |
 

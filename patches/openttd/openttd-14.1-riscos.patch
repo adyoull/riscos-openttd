@@ -1,3 +1,30 @@
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+index 9e5b669..e98530c 100644
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -148,6 +148,14 @@ if(NOT OPTION_DEDICATED)
+                 find_package(SDL)
+             endif()
+             find_package(Fluidsynth)
++            if(RISCOS)
++                # midisynth: https://github.com/adyoull/riscos-midisynth
++                find_path(Midisynth_INCLUDE_DIR midisynth.h)
++                find_library(Midisynth_LIBRARY midisynth)
++                if(Midisynth_INCLUDE_DIR AND Midisynth_LIBRARY)
++                    set(Midisynth_FOUND TRUE)
++                endif()
++            endif()
+             if(Freetype_FOUND)
+                 find_package(Fontconfig)
+             endif()
+@@ -324,6 +332,7 @@ endif()
+ 
+ if(NOT OPTION_DEDICATED)
+     link_package(Fluidsynth)
++    link_package(Midisynth)
+     link_package(SDL)
+     link_package(SDL2 TARGET SDL2::SDL2)
+     link_package(Allegro)
 diff --git a/cmake/CompileFlags.cmake b/cmake/CompileFlags.cmake
 index a85a915..88af179 100644
 --- a/cmake/CompileFlags.cmake
@@ -49,6 +76,182 @@ index 95d7cb8..5b0a85a 100644
  	int f = open(file_new.c_str(), O_RDWR);
  	int ret = fdatasync(f);
  	close(f);
+diff --git a/src/music/CMakeLists.txt b/src/music/CMakeLists.txt
+index 54105bd..d7d36ac 100644
+--- a/src/music/CMakeLists.txt
++++ b/src/music/CMakeLists.txt
+@@ -11,6 +11,12 @@ if(NOT OPTION_DEDICATED)
+         CONDITION Fluidsynth_FOUND
+     )
+ 
++    add_files(
++        midisynth_m.cpp
++        midisynth_m.h
++        CONDITION Midisynth_FOUND
++    )
++
+     add_files(
+         cocoa_m.cpp
+         cocoa_m.h
+diff --git a/src/music/midisynth_m.cpp b/src/music/midisynth_m.cpp
+new file mode 100644
+index 0000000..3572f8f
+--- /dev/null
++++ b/src/music/midisynth_m.cpp
+@@ -0,0 +1,107 @@
++/*
++ * This file is part of OpenTTD.
++ * OpenTTD is free software; you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, version 2.
++ * OpenTTD is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
++ * See the GNU General Public License for more details. You should have received a copy of the GNU General Public License along with OpenTTD. If not, see <http://www.gnu.org/licenses/>.
++ */
++
++
++/** @file midisynth_m.cpp Playing music with the midisynth library (TinySoundFont), mixed into the sound output. */
++
++#include "../stdafx.h"
++#include "../openttd.h"
++#include "../sound_type.h"
++#include "../debug.h"
++#include "midisynth_m.h"
++#include "midifile.hpp"
++#include <midisynth.h>
++#include "../mixer.h"
++
++#include "../safeguards.h"
++
++/** The synthesiser. midisynth does its own locking. The mixer only calls
++ * RenderMusicStream while it is installed, and MxSetMusicSource waits for
++ * the mixer, so _ms is never destroyed while being rendered. */
++static midisynth *_ms = nullptr;
++
++/** Factory for the midisynth driver. */
++static FMusicDriver_MIDISynth iFMusicDriver_MIDISynth;
++
++/** SoundFonts to try when none is given with -m midisynth:soundfont=<file>. */
++static const char *default_sf[] = {
++	nullptr, // MIDISynth$SoundFont (set by !MIDISynth) / MIDISYNTH_SOUNDFONT
++#if defined(__riscos__)
++	"<OpenTTD$Dir>.SoundFont",
++#endif
++	"/usr/share/sounds/sf2/TimGM6mb.sf2",
++	"/usr/share/sounds/sf2/FluidR3_GM.sf2",
++};
++
++static void RenderMusicStream(int16_t *buffer, size_t samples)
++{
++	if (_ms != nullptr) midisynth_render(_ms, buffer, (int)samples, 1);
++}
++
++const char *MusicDriver_MIDISynth::Start(const StringList &param)
++{
++	const char *sfont_name = GetDriverParam(param, "soundfont");
++
++	/* Find out the sample rate without starting playback yet. */
++	uint32_t samplerate = MxSetMusicSource(nullptr);
++	if (samplerate == 0) return "No sound output to play music through";
++
++	if (sfont_name != nullptr) {
++		_ms = midisynth_create(sfont_name, samplerate);
++	} else {
++		for (const char *sf : default_sf) {
++			_ms = midisynth_create(sf, samplerate);
++			if (_ms != nullptr) break;
++			Debug(driver, 1, "midisynth: {}", midisynth_error());
++		}
++	}
++	if (_ms == nullptr) {
++		Debug(driver, 0, "midisynth: {}", midisynth_error());
++		return "Could not open a SoundFont (install !MIDISynth, or use -m midisynth:soundfont=<file>)";
++	}
++	Debug(driver, 1, "midisynth: samplerate {}", samplerate);
++
++	MxSetMusicSource(RenderMusicStream);
++	return nullptr;
++}
++
++void MusicDriver_MIDISynth::Stop()
++{
++	MxSetMusicSource(nullptr);
++	if (_ms != nullptr) midisynth_destroy(_ms);
++	_ms = nullptr;
++}
++
++void MusicDriver_MIDISynth::PlaySong(const MusicSongInfo &song)
++{
++	if (_ms == nullptr) return;
++
++	std::string filename = MidiFile::GetSMFFile(song);
++	midisynth_stop(_ms);
++	if (filename.empty()) return;
++
++	if (!midisynth_load_file(_ms, filename.c_str())) {
++		Debug(driver, 0, "midisynth: {}", midisynth_error());
++		return;
++	}
++	midisynth_play(_ms);
++}
++
++void MusicDriver_MIDISynth::StopSong()
++{
++	if (_ms != nullptr) midisynth_stop(_ms);
++}
++
++bool MusicDriver_MIDISynth::IsSongPlaying()
++{
++	return _ms != nullptr && midisynth_playing(_ms);
++}
++
++void MusicDriver_MIDISynth::SetVolume(byte vol)
++{
++	if (_ms != nullptr) midisynth_set_volume(_ms, vol / 127.0f);
++}
+diff --git a/src/music/midisynth_m.h b/src/music/midisynth_m.h
+new file mode 100644
+index 0000000..4a4841d
+--- /dev/null
++++ b/src/music/midisynth_m.h
+@@ -0,0 +1,40 @@
++/*
++ * This file is part of OpenTTD.
++ * OpenTTD is free software; you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, version 2.
++ * OpenTTD is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
++ * See the GNU General Public License for more details. You should have received a copy of the GNU General Public License along with OpenTTD. If not, see <http://www.gnu.org/licenses/>.
++ */
++
++
++/** @file midisynth_m.h Base for music playback with the midisynth library (TinySoundFont). */
++
++#ifndef MUSIC_MIDISYNTH_H
++#define MUSIC_MIDISYNTH_H
++
++#include "music_driver.hpp"
++
++/** Music driver rendering MIDI through a SoundFont with the midisynth library, mixed into the sound output. */
++class MusicDriver_MIDISynth : public MusicDriver {
++public:
++	const char *Start(const StringList &param) override;
++
++	void Stop() override;
++
++	void PlaySong(const MusicSongInfo &song) override;
++
++	void StopSong() override;
++
++	bool IsSongPlaying() override;
++
++	void SetVolume(byte vol) override;
++	const char *GetName() const override { return "midisynth"; }
++};
++
++/** Factory for the midisynth driver. */
++class FMusicDriver_MIDISynth : public DriverFactoryBase {
++public:
++	FMusicDriver_MIDISynth() : DriverFactoryBase(Driver::DT_MUSIC, 5, "midisynth", "SoundFont MIDI Driver (midisynth)") {}
++	Driver *CreateInstance() const override { return new MusicDriver_MIDISynth(); }
++};
++
++#endif /* MUSIC_MIDISYNTH_H */
 diff --git a/src/network/core/host.cpp b/src/network/core/host.cpp
 index 7504f69..886563e 100644
 --- a/src/network/core/host.cpp

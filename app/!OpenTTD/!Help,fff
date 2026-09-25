@@ -63,7 +63,11 @@ If you have the original Transport Tycoon Deluxe files, you can copy them
 into your OpenTTD choices directory (see below) and choose them from the
 game options.
 
-There is no music, because there is no MIDI driver in this port.
+The music comes in a third archive (OpenTTD-14.1-riscos-Music.zip);
+unpack it over !OpenTTD too. It has the OpenMSX music and a General MIDI
+SoundFont (TimGM6mb) to play it with, because RISC OS has no MIDI
+synthesiser of its own. If you have !MIDISynth installed, its SoundFont
+is used instead. Music needs sound to be working.
 
 
 Where things are saved
@@ -98,6 +102,7 @@ You can edit the Run line in !Run to change how the game starts:
   -v sdl:threads   draw the screen from a separate thread (off by
                    default on RISC OS)
   -s null          turn sound off
+  -m null          turn music off (instead of <OpenTTD$Music>)
 
 
 Source code

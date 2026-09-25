@@ -1,10 +1,10 @@
 #!/bin/bash -e
 # Assemble !OpenTTD and zip it with RISC OS filetypes.
-#   package.sh <openttd binary> <OpenGFX dir> [<OpenSFX dir>]
+#   package.sh <openttd binary> <OpenGFX dir> [<OpenSFX dir> [<OpenMSX dir> <SoundFont>]]
 # If build-fast/openttd-stripped exists it's added as openttd-fast.
 # Output goes in ./dist.
 . "$(dirname "$0")/env.sh"
-BIN=$1; GFX=$2; SFX=$3
+BIN=$1; GFX=$2; SFX=$3; MSX=$4; SF2=$5
 [ -f "$BIN" ] && [ -d "$GFX" ] || { echo "usage: $0 <openttd binary> <opengfx dir> [<opensfx dir>]"; exit 1; }
 OUT="$REPO_DIR/dist"; APP="$OUT/!OpenTTD"
 rm -rf "$OUT"; mkdir -p "$OUT"
@@ -28,5 +28,16 @@ ZIP="$GCCSDK_INSTALL_ENV/bin/zip"   # GCCSDK zip: -, stores RISC OS filetypes
 if [ -n "$SFX" ]; then
   mkdir -p "$OUT/sfx/!OpenTTD/baseset"; cp -a "$SFX" "$OUT/sfx/!OpenTTD/baseset/opensfx"
   ( cd "$OUT/sfx" && "$ZIP" -, -9 -r ../OpenTTD-14.1-riscos-OpenSFX.zip '!OpenTTD' )
+fi
+if [ -n "$MSX" ]; then
+  # The music: OpenMSX, plus a General MIDI SoundFont (e.g. TimGM6mb) for
+  # the midisynth music driver, used if !MIDISynth isn't installed.
+  [ -d "$MSX" ] && [ -f "$SF2" ] || { echo "OpenMSX needs a SoundFont too"; exit 1; }
+  M="$OUT/msx/!OpenTTD"; mkdir -p "$M/baseset" "$M/docs"
+  cp -a "$MSX" "$M/baseset/openmsx"
+  cp "$SF2" "$M/SoundFont,ffd"
+  cp "$REPO_DIR/docs/music/OpenMSX-copyright" "$M/docs/OpenMSX-copyright,fff"
+  cp "$REPO_DIR/docs/music/SoundFont-licence" "$M/docs/SoundFont-licence,fff"
+  ( cd "$OUT/msx" && "$ZIP" -, -9 -r ../OpenTTD-14.1-riscos-Music.zip '!OpenTTD' )
 fi
 ls -l "$OUT"/*.zip

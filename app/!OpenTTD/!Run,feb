@@ -26,6 +26,15 @@ RMEnsure SharedSoundBuffer 0.07 RMEnsure DigitalRenderer 0.51 IfThere System:Mod
 Set OpenTTD$Sound -s sdl
 RMEnsure SharedSoundBuffer 0.07 RMEnsure DigitalRenderer 0.51 Set OpenTTD$Sound -s null
 
+| --- Music ------------------------------------------------------------
+| MIDI music is played through a General MIDI SoundFont: the one set up
+| by !MIDISynth (MIDISynth$SoundFont), or a file called SoundFont in
+| here. Without either (or without sound) the game has no music.
+Set OpenTTD$Music -m null
+IfThere <OpenTTD$Dir>.SoundFont Then Set OpenTTD$Music -m midisynth
+If "<MIDISynth$SoundFont>"<>"" Then IfThere <MIDISynth$SoundFont> Then Set OpenTTD$Music -m midisynth
+If "<OpenTTD$Sound>"="-s null" Then Set OpenTTD$Music -m null
+
 | --- Memory ---------------------------------------------------------
 | The C heap lives in a dynamic area called "OpenTTD Heap" (up to 512MB),
 | which is removed when the game quits.
@@ -61,4 +70,4 @@ IfThere <OpenTTD$Dir>.openttd-fast Then Set OpenTTD$Binary openttd-fast
 | -b 32bpp-optimized is the quickest blitter (no water/light animation);
 | use -b 32bpp-anim for animation.
 | "Do" expands the <variables> before the command runs (Run does not).
-Do Run <OpenTTD$Dir>.<OpenTTD$Binary> -v <OpenTTD$Video> <OpenTTD$Res> -b 32bpp-optimized -m null <OpenTTD$Sound> %*0 2><Wimp$ScrapDir>.OpenTTDlog
+Do Run <OpenTTD$Dir>.<OpenTTD$Binary> -v <OpenTTD$Video> <OpenTTD$Res> -b 32bpp-optimized <OpenTTD$Music> <OpenTTD$Sound> %*0 2><Wimp$ScrapDir>.OpenTTDlog

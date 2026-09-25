@@ -70,6 +70,12 @@ applies `patches/gccsdk/libsdl2-setvars.diff`. The changes to the recipe:
 
 The script also deletes the recipe's `depends` file.
 
+For music, clone [riscos-midisynth](https://github.com/adyoull/riscos-midisynth)
+to `~/riscos/riscos-midisynth` (or set `MIDISYNTH_SRC`) first. The script
+then installs `libmidisynth.a` and `midisynth.h` into the GCCSDK
+environment, and OpenTTD's configure finds them and builds the `midisynth`
+music driver. Without it the game builds with no music driver.
+
 **Check** that the configure summary's "Video drivers" line includes `riscos`.
 If it doesn't, SDL builds without the RISC OS driver and the game will fail with
 "No available video device". The script checks the library for this.
@@ -114,13 +120,18 @@ Then:
 
 ```sh
 riscos-openttd/build/package.sh ~/riscos/OpenTTD/build-ro/openttd-stripped \
-    path/to/opengfx-7.1 path/to/opensfx-1.0.3
+    path/to/opengfx-7.1 path/to/opensfx-1.0.3 \
+    path/to/openmsx-0.4.2 path/to/TimGM6mb.sf2
 ```
 
-This makes `dist/OpenTTD-14.1-riscos.zip` and
-`dist/OpenTTD-14.1-riscos-OpenSFX.zip`. It uses GCCSDK's `zip -,`, which stores
+This makes `dist/OpenTTD-14.1-riscos.zip`,
+`dist/OpenTTD-14.1-riscos-OpenSFX.zip` and
+`dist/OpenTTD-14.1-riscos-Music.zip`. It uses GCCSDK's `zip -,`, which stores
 RISC OS filetypes from the `,xxx` filename suffixes.
 
 OpenGFX and OpenSFX can be downloaded from
 <https://cdn.openttd.org/opengfx-releases/> and
-<https://cdn.openttd.org/opensfx-releases/>.
+<https://cdn.openttd.org/opensfx-releases/>. OpenMSX is at
+<https://cdn.openttd.org/openmsx-releases/>. You can get the TimGM6mb
+SoundFont from Debian/Ubuntu's `timgm6mb-soundfont` package or the
+MuseScore repository (see `docs/music/SoundFont-licence`).

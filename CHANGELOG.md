@@ -14,6 +14,10 @@ Changes since 14.1-riscos2.
   with other programs' sound and doesn't tie up the processor while waiting.
   DigitalRenderer is no longer needed, though it's still used if
   SharedSoundBuffer isn't available.
+- Music. The OpenMSX soundtrack is played through a General MIDI SoundFont
+  with the new `midisynth` music driver. It comes in a third zip
+  (`OpenTTD-14.1-riscos-Music.zip`: OpenMSX and the TimGM6mb SoundFont).
+  If `!MIDISynth` is installed, its SoundFont is used instead.
 
 ## 14.1-riscos2 (tag '14.1.2')
 
