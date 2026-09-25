@@ -4,6 +4,18 @@ Changes made by the `.p` patches in this directory to SDL 2.26.0's RISC OS video
 driver (`src/video/riscos`), and to the GCCSDK autobuilder recipe, newest
 first.
 
+## 2026-09-25 (later)
+
+### High resolution desktop modes
+- `SDL_riscoswindow.c`, `SDL_riscosframebuffer.c`, `SDL_riscosevents.c`: in a
+  mode with one OS unit per pixel (EX0 EY0, often called 180dpi), a desktop
+  window is now shown at double size (each pixel as 2x2 screen pixels), so
+  it looks the same size as in an ordinary 90dpi mode. The window is plotted
+  with `OS_SpriteOp 52` (scaled), and mouse positions are scaled back, so
+  clicks land in the right place. If the doubled window wouldn't fit on the
+  screen it's shown unscaled. `SDL$WindowScale` overrides this: 1 turns it
+  off, 2 to 4 forces that scale. Full screen isn't affected.
+
 ## 2026-09-25
 
 ### Scroll wheel

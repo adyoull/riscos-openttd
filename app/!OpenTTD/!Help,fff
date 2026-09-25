@@ -51,6 +51,10 @@ this, edit these lines in !Run:
 Use "windowed" or "fullscreen" and the size you want, or put a | in
 front of both lines to use the game's own Graphics settings instead.
 
+If your desktop uses a high resolution mode (EX0 EY0, sometimes called
+180dpi), the window is drawn at double size so the game isn't tiny. There's
+a line in !Run to turn this off or choose a different scale.
+
 The free OpenGFX graphics are included, so you don't need the original
 Transport Tycoon files. The OpenSFX sounds come in a second archive
 (OpenTTD-14.1-riscos-OpenSFX.zip); unpack it over !OpenTTD to add them.

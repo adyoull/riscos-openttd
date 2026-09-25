@@ -1,5 +1,5 @@
 diff --git src/video/riscos/SDL_riscosframebuffer.c src/video/riscos/SDL_riscosframebuffer.c
-index 5984199..b186e7e 100644
+index 5984199..c9b6b8a 100644
 --- src/video/riscos/SDL_riscosframebuffer.c
 +++ src/video/riscos/SDL_riscosframebuffer.c
 @@ -53,6 +53,26 @@ int RISCOS_CreateWindowFramebuffer(_THIS, SDL_Window * window, Uint32 * format,
@@ -29,7 +29,7 @@ index 5984199..b186e7e 100644
      /* Calculate pitch */
      *pitch = (((window->w * SDL_BYTESPERPIXEL(*format)) + 3) & ~3);
  
-@@ -88,32 +108,138 @@ int RISCOS_CreateWindowFramebuffer(_THIS, SDL_Window * window, Uint32 * format,
+@@ -88,32 +108,152 @@ int RISCOS_CreateWindowFramebuffer(_THIS, SDL_Window * window, Uint32 * format,
      return 0;
  }
  
@@ -46,7 +46,11 @@ index 5984199..b186e7e 100644
 +RISCOS_WimpPlotWindow(_THIS, SDL_Window *window, int *block, int more)
  {
      SDL_WindowData *driverdata = (SDL_WindowData *) window->driverdata;
-+    int yeig = ((SDL_VideoData *) _this->driverdata)->yeig;
++    SDL_VideoData *vdata = (SDL_VideoData *) _this->driverdata;
++    int yeig = vdata->yeig;
++    int sx = vdata->wscale_x > 0 ? vdata->wscale_x : 1;
++    int sy = vdata->wscale_y > 0 ? vdata->wscale_y : 1;
++    int scale[4];
      _kernel_swi_regs regs;
 -    _kernel_oserror *error;
  
@@ -59,16 +63,24 @@ index 5984199..b186e7e 100644
 -    regs.r[6] = 0;
 -    regs.r[7] = 0;
 -    error = _kernel_swi(OS_SpriteOp, &regs, &regs);
++    scale[0] = sx; scale[1] = sy; scale[2] = 1; scale[3] = 1;
++
 +    while (more) {
 +        if (driverdata && driverdata->fb_sprite) {
 +            int ox = block[1] - block[5];
 +            int oy = block[4] - block[6];
-+            regs.r[0] = 512+34;
 +            regs.r[1] = (int)driverdata->fb_area;
 +            regs.r[2] = (int)driverdata->fb_sprite;
 +            regs.r[3] = ox;
-+            regs.r[4] = oy - (window->h << yeig);
++            regs.r[4] = oy - ((window->h * sy) << yeig);
 +            regs.r[5] = 0;
++            if (sx == 1 && sy == 1) {
++                regs.r[0] = 512+34;     /* plain plot */
++            } else {
++                regs.r[0] = 512+52;     /* PutSpriteScaled: sx x sy screen pixels per pixel */
++                regs.r[6] = (int)scale;
++                regs.r[7] = 0;          /* same pixel format as the screen: no translation */
++            }
 +            _kernel_swi(OS_SpriteOp, &regs, &regs);
 +        }
 +        regs.r[1] = (int)block;
@@ -83,6 +95,8 @@ index 5984199..b186e7e 100644
 +{
 +    SDL_VideoData *vdata = (SDL_VideoData *) _this->driverdata;
 +    int xeig = vdata->xeig, yeig = vdata->yeig;
++    int sx = vdata->wscale_x > 0 ? vdata->wscale_x : 1;
++    int sy = vdata->wscale_y > 0 ? vdata->wscale_y : 1;
 +    int block[11], i;
 +    _kernel_swi_regs regs;
 +
@@ -93,10 +107,10 @@ index 5984199..b186e7e 100644
 +            if (w <= 0 || h <= 0) continue;
 +        }
 +        block[0] = vdata->wimp_window;
-+        block[1] = l << xeig;
-+        block[2] = -((t + h) << yeig);
-+        block[3] = (l + w) << xeig;
-+        block[4] = -(t << yeig);
++        block[1] = (l * sx) << xeig;
++        block[2] = -(((t + h) * sy) << yeig);
++        block[3] = ((l + w) * sx) << xeig;
++        block[4] = -((t * sy) << yeig);
 +        regs.r[1] = (int)block;
 +        if (_kernel_swi(Wimp_UpdateWindow, &regs, &regs) != NULL)
 +            continue;

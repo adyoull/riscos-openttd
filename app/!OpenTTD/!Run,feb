@@ -32,6 +32,12 @@ Unset OpenTTD$Size
 | to use the choices from Game Options > Graphics instead.
 Set OpenTTD$Display windowed
 Set OpenTTD$Size 1024x768
+| In a high resolution desktop mode (EX0 EY0, "180dpi") the window is
+| drawn at double size so it looks the same as in a 90dpi mode. To turn
+| that off, or to force a scale, remove the | from this line (1 = off,
+| 2 to 4 = scale).
+Unset SDL$WindowScale
+| Set SDL$WindowScale 1
 Set OpenTTD$Video sdl
 If "<OpenTTD$Display>"<>"" Then Do Set OpenTTD$Video sdl:<OpenTTD$Display>
 Unset OpenTTD$Res

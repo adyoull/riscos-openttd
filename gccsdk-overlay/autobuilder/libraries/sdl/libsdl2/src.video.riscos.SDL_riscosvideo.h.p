@@ -1,8 +1,8 @@
 diff --git src/video/riscos/SDL_riscosvideo.h src/video/riscos/SDL_riscosvideo.h
-index db6c86e..ca30740 100644
+index db6c86e..bb0b8b9 100644
 --- src/video/riscos/SDL_riscosvideo.h
 +++ src/video/riscos/SDL_riscosvideo.h
-@@ -31,8 +31,24 @@ typedef struct SDL_VideoData
+@@ -31,8 +31,26 @@ typedef struct SDL_VideoData
  {
      int last_mouse_buttons;
      Uint8 key_pressed[RISCOS_MAX_KEYS_PRESSED];
@@ -17,12 +17,14 @@ index db6c86e..ca30740 100644
 +    int buttons_inside;         /* buttons pressed while over our window */
 +    int xeig, yeig;             /* cached eigen factors of the current mode */
 +    int iconbar_icon;           /* icon bar icon handle, or -1 */
++    int wscale_x, wscale_y;     /* screen pixels per SDL pixel in a desktop window */
  } SDL_VideoData;
  
 +extern void RISCOS_ApplyPointerVisibility(_THIS);
 +extern void RISCOS_WimpPlotWindow(_THIS, SDL_Window *window, int *block, int more);
 +extern int RISCOS_WimpReadEig(int var);
 +extern void RISCOS_UpdateEigs(_THIS);
++extern void RISCOS_ChooseWindowScale(_THIS, SDL_Window *window);
 +
  #endif /* SDL_riscosvideo_h_ */
  
