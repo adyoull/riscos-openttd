@@ -1,5 +1,10 @@
 # Changelog
 
+Release notes for the RISC OS port. For a detailed list of changes, see:
+
+- [OpenTTD changes](patches/openttd/CHANGELOG.md)
+- [SDL2 changes](gccsdk-overlay/autobuilder/libraries/sdl/libsdl2/CHANGELOG.md)
+
 ## 14.1-riscos1 (unreleased)
 
 First RISC OS release of OpenTTD 14.1.
@@ -13,6 +18,7 @@ First RISC OS release of OpenTTD 14.1.
   1024x768 window, set in `!Run`.
 - Icon bar icon with a Quit menu while windowed.
 - Keyboard text input in both modes.
+- Scroll wheel support in both modes.
 - Direct-to-screen drawing in full screen, with ARGB to XBGR conversion done a
   word at a time.
 - Memory: the C heap is in a named dynamic area ("OpenTTD Heap"), which is

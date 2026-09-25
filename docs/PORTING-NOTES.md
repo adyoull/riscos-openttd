@@ -36,6 +36,8 @@ full screen only.
   `SDL$IconSprite`. It has a menu with Quit.
 - **Keyboard.** Text is taken from `Key_Pressed` events (windowed) or the
   keyboard buffer (full screen) and sent as `SDL_TEXTINPUT`.
+- **Scroll wheel.** Read with `OS_Pointer 2` on every poll and sent as
+  `SDL_MOUSEWHEEL` (the Pi doesn't send Wimp `Scroll_Request` events).
 - **Mouse.** Mouse position is relative to the window. The pointer is hidden
   only while it's over the window.
 - **Build.** `configure.ac.host.p` makes `arm-riscos-gnueabihf` pick the RISC

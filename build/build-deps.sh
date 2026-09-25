@@ -3,7 +3,7 @@
 # including SDL 2.26 with this port's RISC OS video driver changes.
 . "$(dirname "$0")/env.sh"
 SDLREC="$GCCSDK_SRC/autobuilder/libraries/sdl/libsdl2"
-cp "$REPO_DIR"/gccsdk-overlay/autobuilder/libraries/sdl/libsdl2/* "$SDLREC/"
+cp "$REPO_DIR"/gccsdk-overlay/autobuilder/libraries/sdl/libsdl2/*.p "$SDLREC/"
 rm -f "$SDLREC/depends"   # khronos/oslib are not needed for the software driver
 ( cd "$GCCSDK_SRC" && git apply "$REPO_DIR/patches/gccsdk/libsdl2-setvars.diff" )
 

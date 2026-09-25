@@ -80,7 +80,9 @@ sources:
 | `tools/` | Small helpers used when building without full network access |
 
 See [BUILDING.md](BUILDING.md) to build it yourself, [docs/PORTING-NOTES.md](docs/PORTING-NOTES.md)
-for what the patches do and why, and [CHANGELOG.md](CHANGELOG.md) for the history.
+for what the patches do and why, and [CHANGELOG.md](CHANGELOG.md) for the history. There are detailed change
+logs for [OpenTTD](patches/openttd/CHANGELOG.md) and
+[SDL2](gccsdk-overlay/autobuilder/libraries/sdl/libsdl2/CHANGELOG.md).
 
 ## Licence
 
