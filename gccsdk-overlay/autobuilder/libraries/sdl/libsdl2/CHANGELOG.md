@@ -4,6 +4,24 @@ Changes made by the `.p` patches in this directory to SDL 2.26.0's RISC OS video
 driver (`src/video/riscos`), and to the GCCSDK autobuilder recipe, newest
 first.
 
+## 2026-09-26
+
+### Sound: a proper RISC OS audio driver
+- New `src/audio/riscos/SDL_riscosaudio.c`: plays through the RISC OS 5
+  SharedSoundBuffer and StreamManager modules (the interface RDPClient
+  uses). Sound mixes with other programs, SharedSoundBuffer resamples to
+  the hardware rate, and it's plain user-mode code with no interrupt
+  handlers. About 60 ms is kept queued. Playback starts once two buffers
+  are queued, so it doesn't begin by running dry. While waiting for the
+  queue to drain it sleeps instead of spinning.
+- It comes before the `dsp` driver, so it's used when the modules are loaded.
+  Without them SDL falls back to `dsp` (UnixLib's `/dev/dsp` emulation over
+  DigitalRenderer), as before.
+- `configure.ac.riscosaudio.p`, `include.SDL_config.h.in.p`,
+  `src.audio.SDL_audio.c.p` and `src.audio.SDL_sysaudio.h.p` register the
+  driver (`SDL_AUDIO_DRIVER_RISCOS`). The configure summary now lists
+  `Audio drivers: disk dummy oss riscos`.
+
 ## 2026-09-25 (evening)
 
 ### Program name and icon bar sprite

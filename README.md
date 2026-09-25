@@ -25,7 +25,8 @@ filetypes are kept.
   or RPCEmu.
 - The `ARMEABISupport` module.
 - `SharedUnixLibrary` 1.16 or later.
-- Optional: the `DigitalRenderer` module, for sound.
+- For sound: `SharedSoundBuffer` (part of RISC OS 5), or else the
+  `DigitalRenderer` module.
 - About 128MB of free memory.
 
 The download has two builds of the game: `openttd-fast`, which uses the

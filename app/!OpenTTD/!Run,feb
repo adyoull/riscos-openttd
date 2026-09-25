@@ -15,10 +15,16 @@ RMEnsure SharedUnixLibrary 1.16 Error OpenTTD needs SharedUnixLibrary 1.16 or la
 RMEnsure ARMEABISupport 0 IfThere System:Modules.ARMEABISupport Then RMLoad System:Modules.ARMEABISupport
 RMEnsure ARMEABISupport 0 Error OpenTTD needs the ARMEABISupport module. Install it with PackMan.
 
-| --- Sound (optional; needs DigitalRenderer) -----------------------
+| --- Sound ------------------------------------------------------------
+| Sound goes through SharedSoundBuffer, which comes with RISC OS 5 and
+| mixes with other programs' sound. If it isn't there, DigitalRenderer
+| is used instead, and with neither the game runs silently.
+RMEnsure SharedSound 1.07 IfThere System:Modules.SSound Then RMLoad System:Modules.SSound
+RMEnsure StreamManager 0.03 IfThere System:Modules.StreamMan Then RMLoad System:Modules.StreamMan
+RMEnsure SharedSoundBuffer 0.07 IfThere System:Modules.SSBuffer Then RMLoad System:Modules.SSBuffer
+RMEnsure SharedSoundBuffer 0.07 RMEnsure DigitalRenderer 0.51 IfThere System:Modules.DRenderer Then RMLoad System:Modules.DRenderer
 Set OpenTTD$Sound -s sdl
-RMEnsure DigitalRenderer 0.51 IfThere System:Modules.DRenderer Then RMLoad System:Modules.DRenderer
-RMEnsure DigitalRenderer 0.51 Set OpenTTD$Sound -s null
+RMEnsure SharedSoundBuffer 0.07 RMEnsure DigitalRenderer 0.51 Set OpenTTD$Sound -s null
 
 | --- Memory ---------------------------------------------------------
 | The C heap lives in a dynamic area called "OpenTTD Heap" (up to 512MB),

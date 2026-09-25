@@ -3,6 +3,13 @@
 Changes made by `openttd-14.1-riscos.patch` to OpenTTD 14.1, newest first.
 See [PORTING-NOTES](../../docs/PORTING-NOTES.md) for more detail.
 
+## 2026-09-26
+
+### Sound
+- `!Run` loads SharedSound, StreamManager and SharedSoundBuffer, and uses
+  SDL's new RISC OS audio driver through them. It falls back to
+  DigitalRenderer, and to no sound if neither is available.
+
 ## 2026-09-25 (later)
 
 ### Absolute files

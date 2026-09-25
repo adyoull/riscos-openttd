@@ -6,6 +6,15 @@ SDL2 is listed in more detail here:
 - [OpenTTD changes](patches/openttd/CHANGELOG.md)
 - [SDL2 changes](gccsdk-overlay/autobuilder/libraries/sdl/libsdl2/CHANGELOG.md)
 
+## 14.1-riscos3 (not yet released)
+
+Changes since 14.1-riscos2.
+
+- Sound now goes through RISC OS's own SharedSoundBuffer module. It mixes
+  with other programs' sound and doesn't tie up the processor while waiting.
+  DigitalRenderer is no longer needed, though it's still used if
+  SharedSoundBuffer isn't available.
+
 ## 14.1-riscos2 (tag '14.1.2')
 
 Changes since 14.1-riscos1.

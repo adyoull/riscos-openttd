@@ -44,6 +44,20 @@ full screen only.
 - **Build.** `configure.ac.host.p` makes `arm-riscos-gnueabihf` pick the RISC
   OS driver (it used to match `*-*-gnu*` and build a generic Unix SDL).
 
+## SDL 2.26 RISC OS audio driver (`gccsdk-overlay/…/libsdl2`)
+
+- New `src/audio/riscos/SDL_riscosaudio.c`. It plays 16-bit stereo through
+  SharedSoundBuffer and StreamManager, the RISC OS 5 modules that mix
+  several programs' sound into SharedSound and resample to the hardware
+  rate. StreamManager copies each block into its own memory, so the driver
+  is ordinary user-mode code with no interrupt handlers and nothing that has
+  to stay paged in.
+- It keeps about 60 ms queued (three SDL buffers, at least 60 ms), starts
+  playing once two buffers are queued, and sleeps while the queue drains.
+- It's listed before the `dsp` driver. If the modules aren't loaded it
+  declines, and SDL uses `dsp` (UnixLib's `/dev/dsp` emulation over
+  DigitalRenderer) instead.
+
 ## UnixLib (`patches/unixlib`)
 
 - `wchar/wmissing.c`, `wchar/wctype.c`: implementations of the wide-character
