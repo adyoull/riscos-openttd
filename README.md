@@ -98,7 +98,7 @@ sources:
 | `patches/openttd` | The patch against OpenTTD tag `14.1` |
 | `gccsdk-overlay/…/libsdl2` | SDL 2.26 RISC OS video driver changes (GCCSDK autobuilder `.p` patches) |
 | `patches/gccsdk` | Changes to the GCCSDK autobuilder recipes (GCC 10.2, SDL2) |
-| `patches/unixlib` | UnixLib fixes: wide characters, a high-resolution clock, precise `nanosleep`, no mmap |
+| `patches/unixlib` | UnixLib fixes, copied from riscos-unixlib: wide characters, a high-resolution clock, precise `nanosleep`, no mmap, sound (`/dev/dsp` via SharedSoundBuffer, the exit fix, `/dev/midi`), `fsync`/`fdatasync`, joining threads at exit |
 
 The SDL2 and UnixLib changes are linked into the OpenTTD program itself.
 Nothing on your machine is replaced, and other programs aren't affected.

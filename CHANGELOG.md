@@ -19,6 +19,11 @@ Changes since 14.1-riscos3.
   with NEON instructions. It draws exactly the same pixels as the SSE4
   drawer (checked over 18,000 test draws). Choose it with the
   `Set OpenTTD$Blitter` line in `!Run`; the default is unchanged.
+- Relinked with the updated UnixLib from riscos-unixlib (`22511f2`;
+  `patches/unixlib/unixlib-riscos.diff`, renamed from
+  `unixlib-riscos-openttd.diff`). Quitting the game no longer stops another
+  program's DigitalRenderer sound, and UnixLib's own large stack frames are
+  now probed, leaving only two unprobed functions (in libstdc++).
 - `tools/check-stack-probes.py` also recognises stack probes with a positive
   offset (`str r0, [ip, #N]`), which GCC uses in some functions.
 - Documentation: the full list of changes made to SDL for RISC OS is in

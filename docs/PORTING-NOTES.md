@@ -83,6 +83,11 @@ full screen only.
 
 ## UnixLib (`patches/unixlib`)
 
+UnixLib changes are now made in the separate riscos-unixlib repository;
+`patches/unixlib/unixlib-riscos.diff` is a copy of its
+`patches/unixlib-riscos.diff` (commit `22511f2`). The changes OpenTTD
+needed first:
+
 - `wchar/wmissing.c`, `wchar/wctype.c`: implementations of the wide-character
   functions that used to be `abort()` stubs.
 - `time/clk_gettime.c`: `CLOCK_MONOTONIC` uses the HAL counter (OS_Hardware)
@@ -92,6 +97,16 @@ full screen only.
 - `stdlib/alloc.c`: `DEFAULT_MMAP_MAX 0` on EABI, so large allocations come
   from the heap dynamic area. They used to leave dozens of mmap dynamic areas
   behind.
+
+Added since in riscos-unixlib (OpenTTD picks them up by relinking):
+
+- Sound: quitting a UnixLib program no longer stops another program's
+  DigitalRenderer sound; `/dev/dsp` plays through SharedSoundBuffer when
+  it's loaded (so SDL's `dsp` fallback mixes too); `/dev/midi`.
+- `fsync()` on a read-only file succeeds; `fdatasync()` exists.
+- An atexit handler or destructor that joins a thread no longer aborts.
+- Built with `-fstack-clash-protection`, so UnixLib's own large stack
+  frames (`execve`, the DNS resolver) are probed too.
 
 ## RISC OS lessons
 

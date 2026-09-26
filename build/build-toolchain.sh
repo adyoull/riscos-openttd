@@ -5,7 +5,8 @@
 . "$(dirname "$0")/env.sh"
 cd "$GCCSDK_SRC"
 git apply "$REPO_DIR/patches/gccsdk/gccsdk-toolchain.diff"
-git apply "$REPO_DIR/patches/unixlib/unixlib-riscos-openttd.diff"
+# UnixLib changes: a copy of riscos-unixlib's patches/unixlib-riscos.diff
+git apply "$REPO_DIR/patches/unixlib/unixlib-riscos.diff"
 
 # 1. The GCC 4.7.4 base toolchain.
 ( cd gcc4 && ./build-world )

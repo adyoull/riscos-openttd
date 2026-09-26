@@ -27,7 +27,8 @@ riscos-openttd/build/build-toolchain.sh
 This script:
 
 - applies `patches/gccsdk/gccsdk-toolchain.diff` and
-  `patches/unixlib/unixlib-riscos-openttd.diff`;
+  `patches/unixlib/unixlib-riscos.diff` (a copy of the patch from
+  riscos-unixlib, where all UnixLib changes are now made);
 - builds the GCC 4.7.4 base toolchain (`gcc4/build-world`);
 - builds GCC 10.2 for `arm-riscos-gnueabihf` with the autobuilder, cross
   compiler only (`AB_SKIP_NATIVE=yes`).
@@ -94,8 +95,9 @@ This script:
 - builds the standard program in `build-ro` and the NEON one
   (`openttd-fast`) in `build-fast`, both with `-fstack-clash-protection`.
 
-`tools/check-stack-probes.py build-ro/openttd` should list only a handful of
-library functions.
+`tools/check-stack-probes.py build-ro/openttd` should list only two functions,
+both in libstdc++ (with the riscos-unixlib UnixLib, which is built with
+`-fstack-clash-protection`).
 
 To re-link after changing a library, run `rm build-ro/openttd` and then
 `make openttd`.
