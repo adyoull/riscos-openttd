@@ -13,6 +13,8 @@ OpenTTD 14.1 for RISC OS, fourth release.
   picture to the screen's colour order now takes two instructions per pixel
   instead of six. The NEON build (`openttd-fast`, used on the Pi 2 and
   later) already did this 16 pixels at a time and is unchanged.
+- Built with the updated UnixLib (the C library): quitting the game no
+  longer stops sound another program is playing through DigitalRenderer.
 - This release also sets out what has been changed in SDL, the library the
   game uses for its window, mouse, keyboard and sound on RISC OS (below).
 
