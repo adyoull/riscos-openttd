@@ -6,6 +6,18 @@ SDL2 is listed in more detail here:
 - [OpenTTD changes](patches/openttd/CHANGELOG.md)
 - [SDL2 changes](gccsdk-overlay/autobuilder/libraries/sdl/libsdl2/CHANGELOG.md)
 
+## 14.1-riscos4 (tag `14.1.4`)
+
+Changes since 14.1-riscos3.
+
+- The standard build (`openttd`, for ARMv7 machines without NEON) converts
+  the picture to the screen's colour order with two instructions per pixel
+  instead of six, so drawing costs a little less. The NEON build
+  (`openttd-fast`) already did this 16 pixels at a time and is unchanged.
+- Documentation: the full list of changes made to SDL for RISC OS is in
+  [the SDL2 changelog](gccsdk-overlay/autobuilder/libraries/sdl/libsdl2/CHANGELOG.md)
+  and summarised in `docs/RELEASE-NOTES-14.1-riscos4.md`.
+
 ## 14.1-riscos3 (tag `14.1.3`)
 
 Changes since 14.1-riscos2.

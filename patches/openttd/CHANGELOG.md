@@ -3,6 +3,14 @@
 Changes made by `openttd-14.1-riscos.patch` to OpenTTD 14.1, newest first.
 See [PORTING-NOTES](../../docs/PORTING-NOTES.md) for more detail.
 
+## 2026-09-27 (later)
+
+### Speed
+- `src/video/sdl2_default_v.cpp`: the non-NEON red/blue swap in `Paint()`
+  is `__builtin_bswap32(c << 8)` (LSL + REV) instead of mask-and-shift (five
+  or six instructions). Output is bit-identical (the unused top byte stays
+  0). The NEON path is unchanged.
+
 ## 2026-09-27
 
 ### Music
