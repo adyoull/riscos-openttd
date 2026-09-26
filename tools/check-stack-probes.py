@@ -9,7 +9,7 @@ fn=None; res={}; regs={}; probed=set()
 for line in out.splitlines():
     m=re.match(r'^[0-9a-f]+ <(.+)>:$',line)
     if m: fn=m.group(1); regs={}; continue
-    if re.search(r'\tstr\s+r0, \[ip(, #-\d+)?\]',line): probed.add(fn)
+    if re.search(r'\tstr\s+r0, \[ip(, #-?\d+)?\]',line): probed.add(fn)
     m=re.search(r'\t(movw|mov)\s+(r\d+|ip|lr|fp|sl), #(\d+)',line)
     if m: regs[m.group(2)]=int(m.group(3)); continue
     m=re.search(r'\tmovt\s+(r\d+|ip|lr|fp|sl), #(\d+)',line)

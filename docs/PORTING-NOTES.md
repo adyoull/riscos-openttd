@@ -15,6 +15,7 @@
 | `src/textfile_gui.cpp` | `GetTextfile` results are cached. Only `.txt`/`.md` are probed on RISC OS (this was a multi-second pause opening Game Options) |
 | `src/video/sdl2_default_v.cpp` | The RISC OS screen is XBGR8888: draw into an XRGB8888 shadow surface and swap red and blue one word at a time in `Paint()` |
 | `src/music/midisynth_m.cpp`, `CMakeLists.txt` | New `midisynth` music driver: renders MIDI through a SoundFont with the [midisynth](https://github.com/adyoull/riscos-midisynth) library, into OpenTTD's own mixer (like the FluidSynth driver). Built when `libmidisynth.a` is found |
+| `src/blitter/32bpp_neon.cpp/.hpp`, `src/blitter/CMakeLists.txt` | Optional `32bpp-neon` blitter: a NEON port of the SSE blitter, bit-identical to `32bpp-sse4`. Only in NEON builds; chosen with `-b 32bpp-neon` (`OpenTTD$Blitter` in `!Run`) |
 | `src/video/sdl2_v.cpp` | Memory report every 10s. `-v sdl:windowed` / `sdl:fullscreen`. Full screen toggles by recreating the window. Drawing from the game thread is off by default |
 
 ## SDL 2.26 RISC OS driver (`gccsdk-overlay/…/libsdl2`)

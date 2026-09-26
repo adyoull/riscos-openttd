@@ -115,10 +115,20 @@ menu (the "?" button on the toolbar).
 
 Options
 -------
-You can edit the Run line in !Run to change how the game starts:
+The sprite drawer (the "blitter") is chosen by the line
+Set OpenTTD$Blitter in !Run:
 
-  -b 32bpp-anim    animated water and lights (slower than the default
-                   -b 32bpp-optimized)
+  32bpp-optimized  the default
+  32bpp-anim       animated water and lights (slower)
+  32bpp-neon       draws sprites with the NEON instructions of the
+                   Raspberry Pi 2 and later (openttd-fast only). It is
+                   a port of the SSE sprite drawer that PCs use, and
+                   draws exactly the same picture. Experimental: try it
+                   and compare the Frame rate window. It keeps sprites
+                   uncompressed, so it uses more memory.
+
+You can also edit the Run line in !Run to change how the game starts:
+
   -v sdl:threads   draw the screen from a separate thread (off by
                    default on RISC OS)
   -s null          turn sound off

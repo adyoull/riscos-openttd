@@ -5,6 +5,25 @@ See [PORTING-NOTES](../../docs/PORTING-NOTES.md) for more detail.
 
 ## 2026-09-27 (later)
 
+### NEON blitter (optional)
+- New `src/blitter/32bpp_neon.cpp/.hpp`: `32bpp-neon`, a port of the SSE
+  blitter (`32bpp_sse_func.hpp`, SSSE3/SSE4 code paths) to ARM NEON
+  intrinsics. Two pixels per 64-bit register, widened to 16 bits per
+  channel as `_mm_unpacklo_epi8` does; alpha blending, darkening
+  (transparency) and the two-pixel brightness adjustment for colour remaps
+  are the same arithmetic, so the output is bit-identical to `32bpp-sse4`.
+  Opaque-only sprites are copied four pixels at a time with a NEON select.
+- Same sprite encoding as the SSE blitters, except that each zoom level is
+  padded to a multiple of 4 bytes, so pixel data stays word aligned (ARM
+  needs that for `LDRD` and NEON word loads).
+- The files compile to nothing without `__ARM_NEON`, so only the NEON build
+  (`openttd-fast`) has it. It is never picked automatically: `-b 32bpp-neon`.
+- Tested with a harness that encodes 3,000 random sprites and draws them in
+  all six blitter modes with random clipping, remaps and destinations,
+  comparing `32bpp-sse4` on x86 with `32bpp-neon` on ARM (qemu): encoded
+  data and all 18,000 results identical.
+  The test is in `tools/blitter-test/` (`run.sh`).
+
 ### Speed
 - `src/video/sdl2_default_v.cpp`: the non-NEON red/blue swap in `Paint()`
   is `__builtin_bswap32(c << 8)` (LSL + REV) instead of mask-and-shift (five

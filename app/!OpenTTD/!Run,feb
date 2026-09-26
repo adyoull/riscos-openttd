@@ -68,7 +68,16 @@ If "<OpenTTD$Size>"<>"" Then Do Set OpenTTD$Res -r <OpenTTD$Size>
 Set OpenTTD$Binary openttd
 IfThere <OpenTTD$Dir>.openttd-fast Then Set OpenTTD$Binary openttd-fast
 
-| -b 32bpp-optimized is the quickest blitter (no water/light animation);
-| use -b 32bpp-anim for animation.
+| --- Sprite drawing (the "blitter") ----------------------------------
+| 32bpp-optimized  the default: quick, no water or light animation.
+| 32bpp-anim       animated water and lights (slower).
+| 32bpp-neon       draws sprites with NEON instructions (openttd-fast
+|                  only). Experimental: try it and compare the Frame
+|                  rate window. It uses more memory for sprites.
+| To choose one, change the Set line below.
+Set OpenTTD$Blitter 32bpp-optimized
+| The standard build has no NEON blitter; fall back to the default.
+If "<OpenTTD$Binary><OpenTTD$Blitter>"="openttd32bpp-neon" Then Set OpenTTD$Blitter 32bpp-optimized
+
 | "Do" expands the <variables> before the command runs (Run does not).
-Do Run <OpenTTD$Dir>.<OpenTTD$Binary> -v <OpenTTD$Video> <OpenTTD$Res> -b 32bpp-optimized <OpenTTD$Music> <OpenTTD$Sound> %*0 2><Wimp$ScrapDir>.OpenTTDlog
+Do Run <OpenTTD$Dir>.<OpenTTD$Binary> -v <OpenTTD$Video> <OpenTTD$Res> -b <OpenTTD$Blitter> <OpenTTD$Music> <OpenTTD$Sound> %*0 2><Wimp$ScrapDir>.OpenTTDlog

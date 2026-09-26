@@ -2,6 +2,13 @@ OpenTTD 14.1 for RISC OS, fourth release.
 
 **What's new since 14.1-riscos3**
 
+- **New, optional: a NEON sprite drawer** for the Raspberry Pi 2 and later
+  (`openttd-fast` only). It's a port of the SSE sprite drawer that OpenTTD
+  uses on PCs, drawing two pixels at a time with the Pi's NEON
+  instructions, and it draws exactly the same picture. The default is
+  unchanged. To try it, change `Set OpenTTD$Blitter 32bpp-optimized` in
+  `!Run` to `32bpp-neon`, and compare the Frame rate window. It keeps
+  sprites uncompressed, so it uses more memory.
 - The standard build (`openttd`) draws a little faster: converting the
   picture to the screen's colour order now takes two instructions per pixel
   instead of six. The NEON build (`openttd-fast`, used on the Pi 2 and

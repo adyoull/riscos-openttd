@@ -14,6 +14,13 @@ Changes since 14.1-riscos3.
   the picture to the screen's colour order with two instructions per pixel
   instead of six, so drawing costs a little less. The NEON build
   (`openttd-fast`) already did this 16 pixels at a time and is unchanged.
+- New, optional NEON sprite drawer (`32bpp-neon`) for `openttd-fast`: a
+  port of the SSE sprite drawer that PCs use, doing two pixels at a time
+  with NEON instructions. It draws exactly the same pixels as the SSE4
+  drawer (checked over 18,000 test draws). Choose it with the
+  `Set OpenTTD$Blitter` line in `!Run`; the default is unchanged.
+- `tools/check-stack-probes.py` also recognises stack probes with a positive
+  offset (`str r0, [ip, #N]`), which GCC uses in some functions.
 - Documentation: the full list of changes made to SDL for RISC OS is in
   [the SDL2 changelog](gccsdk-overlay/autobuilder/libraries/sdl/libsdl2/CHANGELOG.md)
   and summarised in `docs/RELEASE-NOTES-14.1-riscos4.md`.
