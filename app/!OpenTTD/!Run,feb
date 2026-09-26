@@ -16,9 +16,10 @@ RMEnsure ARMEABISupport 0 IfThere System:Modules.ARMEABISupport Then RMLoad Syst
 RMEnsure ARMEABISupport 0 Error OpenTTD needs the ARMEABISupport module. Install it with PackMan.
 
 | --- Sound ------------------------------------------------------------
-| Sound goes through SharedSoundBuffer, which comes with RISC OS 5 and
-| mixes with other programs' sound. If it isn't there, DigitalRenderer
-| is used instead, and with neither the game runs silently.
+| Sound goes through SharedSoundBuffer and StreamManager (freeware by
+| John Duffell, not included: see !Help for where to get them), which mix
+| with other programs' sound. If they aren't there, DigitalRenderer is
+| used instead, and with neither the game runs silently.
 RMEnsure SharedSound 1.07 IfThere System:Modules.SSound Then RMLoad System:Modules.SSound
 RMEnsure StreamManager 0.03 IfThere System:Modules.StreamMan Then RMLoad System:Modules.StreamMan
 RMEnsure SharedSoundBuffer 0.07 IfThere System:Modules.SSBuffer Then RMLoad System:Modules.SSBuffer

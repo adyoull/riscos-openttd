@@ -48,8 +48,9 @@ full screen only.
 ## SDL 2.26 RISC OS audio driver (`gccsdk-overlay/…/libsdl2`)
 
 - New `src/audio/riscos/SDL_riscosaudio.c`. It plays 16-bit stereo through
-  SharedSoundBuffer and StreamManager, the RISC OS 5 modules that mix
-  several programs' sound into SharedSound and resample to the hardware
+  SharedSoundBuffer and StreamManager (John Duffell's freeware modules,
+  not included; see the README), which mix several programs' sound into
+  SharedSound and resample to the hardware
   rate. StreamManager copies each block into its own memory, so the driver
   is ordinary user-mode code with no interrupt handlers and nothing that has
   to stay paged in.

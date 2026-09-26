@@ -10,10 +10,10 @@ SDL2 is listed in more detail here:
 
 Changes since 14.1-riscos2.
 
-- Sound now goes through RISC OS's own SharedSoundBuffer module. It mixes
-  with other programs' sound and doesn't tie up the processor while waiting.
-  DigitalRenderer is no longer needed, though it's still used if
-  SharedSoundBuffer isn't available.
+- Sound now goes through the SharedSoundBuffer and StreamManager modules
+  (freeware by John Duffell; not included, see the README for where to get
+  them). They mix with other programs' sound and don't tie up the
+  processor while waiting. Without them DigitalRenderer is still used.
 - Music. The OpenMSX soundtrack is played through a General MIDI SoundFont
   with the new `midisynth` music driver. It comes in a third zip
   (`OpenTTD-14.1-riscos-Music.zip`: OpenMSX and the TimGM6mb SoundFont).

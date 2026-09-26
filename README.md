@@ -27,8 +27,19 @@ filetypes are kept.
   or RPCEmu.
 - The `ARMEABISupport` module.
 - `SharedUnixLibrary` 1.16 or later.
-- For sound: `SharedSoundBuffer` (part of RISC OS 5), or else the
-  `DigitalRenderer` module.
+- For sound: the SharedSound (1.07 or later), StreamManager (0.03 or
+  later) and SharedSoundBuffer (0.07 or later) modules. `!Run` loads them
+  from `System:Modules` if they're there. Without them it uses the
+  `DigitalRenderer` module instead, and with neither the game runs
+  silently. Music needs sound to be working.
+  - StreamManager and SharedSoundBuffer are freeware, © John Duffell
+    2004. His terms allow passing them on intact but not publishing them
+    on other web sites (you must link to his site), so they are **not**
+    included in the OpenTTD zips. Get `ssb.zip` from the !RDPClient page
+    at <https://orac.co.uk/software/rdpclient/>, where they are hosted by
+    kind permission of the author, and merge its `!System` into yours.
+    John Duffell's own site is on the Internet Archive:
+    <https://web.archive.org/web/20110920080106/http://www.duffell.riscos.me.uk/>.
 - About 128MB of free memory.
 
 The download has two builds of the game: `openttd-fast`, which uses the
@@ -36,7 +47,7 @@ NEON instructions of the Pi 2 and later (and other Cortex-A machines), and
 the standard `openttd`. `!Run` uses `openttd-fast` when it's there. To use
 the standard one, put a `|` in front of the `IfThere` line in `!Run`.
 
-All of these can be installed with !PackMan.
+ARMEABISupport and SharedUnixLibrary can be installed with !PackMan.
 
 ## Running
 

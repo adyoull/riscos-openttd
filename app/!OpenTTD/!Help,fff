@@ -17,12 +17,32 @@ Requirements
    (Pi 1 / Zero), older ARM machines or RPCEmu.
  * The ARMEABISupport module.
  * SharedUnixLibrary 1.16 or later.
- * Sound uses the SharedSoundBuffer module, which comes with RISC OS 5.
-   If it isn't there, the DigitalRenderer module is used instead, and
-   with neither the game runs silently.
+ * For sound, the SharedSound (1.07 or later), StreamManager (0.03 or
+   later) and SharedSoundBuffer (0.07 or later) modules. !Run loads
+   them from System:Modules if they're there. Without them the
+   DigitalRenderer module is used instead, and with neither the game
+   runs silently. Music needs sound to be working.
  * About 128MB of free memory.
 
-You can install all of these with !PackMan.
+You can install ARMEABISupport and SharedUnixLibrary with !PackMan.
+
+
+Sound modules
+-------------
+StreamManager and SharedSoundBuffer are freeware by John Duffell. His
+terms say they may not be published on other web sites, so they are not
+included with OpenTTD. If you don't have them, download ssb.zip from the
+!RDPClient page on Alan Sellors' website, where they are hosted by kind
+permission of the author:
+
+  https://orac.co.uk/software/rdpclient/
+
+then merge its !System into yours: open !Boot, click System, and drag
+the !System from ssb.zip into the System merge window.
+
+John Duffell's own site (now on the Internet Archive) has more details:
+
+  https://web.archive.org/web/20110920080106/http://www.duffell.riscos.me.uk/
 
 
 Running
