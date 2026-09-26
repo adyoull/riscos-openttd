@@ -1,5 +1,5 @@
 diff --git src/video/riscos/SDL_riscosframebuffer.c src/video/riscos/SDL_riscosframebuffer.c
-index 5984199..36563c0 100644
+index 5984199..c9cd558 100644
 --- src/video/riscos/SDL_riscosframebuffer.c
 +++ src/video/riscos/SDL_riscosframebuffer.c
 @@ -53,6 +53,26 @@ int RISCOS_CreateWindowFramebuffer(_THIS, SDL_Window * window, Uint32 * format,
@@ -195,7 +195,7 @@ index 5984199..36563c0 100644
 +{
 +    SDL_WindowData *driverdata = (SDL_WindowData *) window->driverdata;
 +
-+    if (((SDL_VideoData *) _this->driverdata)->wimp_window != 0 &&
++    if (RISCOS_IsWindowed(((SDL_VideoData *) _this->driverdata)) &&
 +        ((SDL_VideoData *) _this->driverdata)->wimp_sdl_window == window) {
 +        return RISCOS_WimpUpdateFramebuffer(_this, window, rects, numrects);
 +    }

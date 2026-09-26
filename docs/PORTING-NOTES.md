@@ -19,7 +19,7 @@ applies on its own. `build/package.sh` joins them into one
 | 06 | `src/os/unix/unix_main.cpp` | The C heap is a dynamic area named "OpenTTD Heap" (up to 512MB) |
 | 07 | `src/spritecache.cpp` | Sprite cache capped at 128 MiB, and allocated without the 1.5x probe |
 | 08 | `src/textfile_gui.cpp` | `GetTextfile` results are cached. Only `.txt`/`.md` are probed on RISC OS (this was a multi-second pause opening Game Options) |
-| 09 | `src/video/sdl2_v.cpp` | Memory report every 10s. `-v sdl:windowed` / `sdl:fullscreen`. Full screen toggles by recreating the window. Drawing from the game thread is off by default |
+| 09 | `src/video/sdl2_v.cpp` | Memory report every 10s with `-d driver=1` (`OpenTTD$Debug` in `!Run`). `-v sdl:windowed` / `sdl:fullscreen`. Full screen toggles by recreating the window. Drawing from the game thread is off by default |
 | 10 | `src/video/sdl2_default_v.cpp` | The RISC OS screen is XBGR8888: draw into an XRGB8888 shadow surface and swap red and blue one word at a time in `Paint()` |
 | 11 | `src/music/midisynth_m.cpp`, `CMakeLists.txt` | New `midisynth` music driver: renders MIDI through a SoundFont with the [midisynth](https://github.com/adyoull/riscos-midisynth) library, into OpenTTD's own mixer (like the FluidSynth driver). Built when `libmidisynth.a` is found |
 | 12 | `src/blitter/32bpp_neon.cpp/.hpp`, `src/blitter/CMakeLists.txt` | Optional `32bpp-neon` blitter: a NEON port of the SSE blitter, bit-identical to `32bpp-sse4`. Only in NEON builds; chosen with `-b 32bpp-neon` (`OpenTTD$Blitter` in `!Run`) |
@@ -58,6 +58,12 @@ full screen only.
   keyboard buffer (full screen) and sent as `SDL_TEXTINPUT`.
 - **Scroll wheel.** Read with `OS_Pointer 2` on every poll and sent as
   `SDL_MOUSEWHEEL` (the Pi doesn't send Wimp `Scroll_Request` events).
+- **One desktop window.** Only one SDL window at a time is a Wimp window
+  (`wimp_sdl_window`); any other is created full screen, as the original
+  driver did. `RISCOS_IsWindowed()` says which mode the driver is in.
+- **Window scale.** The `SDL_RISCOS_WINDOW_SCALE` hint (or system variable)
+  sets the scale of a desktop window; `SDL$WindowScale` is read if it's not
+  set.
 - **Mouse.** Mouse position is relative to the window. The pointer is hidden
   only while it's over the window.
 - **Build.** `configure.ac.host.p` makes `arm-riscos-gnueabihf` pick the RISC

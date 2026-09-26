@@ -79,5 +79,11 @@ Set OpenTTD$Blitter 32bpp-optimized
 | The standard build has no NEON blitter; fall back to the default.
 If "<OpenTTD$Binary><OpenTTD$Blitter>"="openttd32bpp-neon" Then Set OpenTTD$Blitter 32bpp-optimized
 
+| --- Diagnostics ---------------------------------------------------
+| To log a memory report every 10 seconds (and the video driver's
+| messages) to <Wimp$ScrapDir>.OpenTTDlog, remove the | from this line.
+Unset OpenTTD$Debug
+| Set OpenTTD$Debug -d driver=1
+
 | "Do" expands the <variables> before the command runs (Run does not).
-Do Run <OpenTTD$Dir>.<OpenTTD$Binary> -v <OpenTTD$Video> <OpenTTD$Res> -b <OpenTTD$Blitter> <OpenTTD$Music> <OpenTTD$Sound> %*0 2><Wimp$ScrapDir>.OpenTTDlog
+Do Run <OpenTTD$Dir>.<OpenTTD$Binary> -v <OpenTTD$Video> <OpenTTD$Res> -b <OpenTTD$Blitter> <OpenTTD$Music> <OpenTTD$Sound> <OpenTTD$Debug> %*0 2><Wimp$ScrapDir>.OpenTTDlog

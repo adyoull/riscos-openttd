@@ -75,8 +75,8 @@ Use `windowed` or `fullscreen` and any size. To use the game's own Graphics
 settings instead, put a `|` in front of both lines.
 
 Settings and saved games are kept in `<Choices$Write>.OpenTTD`. Messages from the
-game, including a memory report every 10 seconds, go to
-`<Wimp$ScrapDir>.OpenTTDlog`.
+game go to `<Wimp$ScrapDir>.OpenTTDlog`. For a memory report there every 10
+seconds, remove the `|` from the `Set OpenTTD$Debug` line in `!Run`.
 
 ## Known limitations
 

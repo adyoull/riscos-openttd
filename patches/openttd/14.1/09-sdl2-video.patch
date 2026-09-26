@@ -1,6 +1,7 @@
 SDL2 video driver behaviour on RISC OS.
 
-- memory report every 10 seconds to stderr (!Run sends it to OpenTTDlog);
+- with -d driver=1, a memory report every 10 seconds (!Run sends stderr to
+  OpenTTDlog; OpenTTD$Debug in !Run turns it on);
 - -v sdl:windowed / sdl:fullscreen, so !Run can choose;
 - switching full screen recreates the window (the RISC OS SDL driver can't
   switch an existing window);
@@ -10,7 +11,7 @@ SDL2 video driver behaviour on RISC OS.
 For OpenTTD 14.1. See docs/PORTING-NOTES.md in riscos-openttd.
 
 diff --git a/src/video/sdl2_v.cpp b/src/video/sdl2_v.cpp
-index e57cfa6..fe6f72f 100644
+index e57cfa6..10e2cbe 100644
 --- a/src/video/sdl2_v.cpp
 +++ b/src/video/sdl2_v.cpp
 @@ -181,6 +181,9 @@ bool VideoDriver_SDL_Base::CreateMainWindow(uint w, uint h, uint flags)
@@ -31,17 +32,18 @@ index e57cfa6..fe6f72f 100644
  	return true;
  }
  
-@@ -373,8 +377,42 @@ static uint ConvertSdlKeycodeIntoMy(SDL_Keycode kc)
+@@ -373,8 +377,43 @@ static uint ConvertSdlKeycodeIntoMy(SDL_Keycode kc)
  	return key;
  }
  
 +#if defined(__riscos__)
 +#include <swis.h>
-+/** RISC OS diagnostics: every 10 seconds, log the heap dynamic area size, the
-+ * number/size of ARMEABISupport mmap areas and the free memory pool to stderr
-+ * (which !Run sends to <Wimp$ScrapDir>.OpenTTDlog). */
++/** RISC OS diagnostics: with -d driver=1 or higher, every 10 seconds log the
++ * heap dynamic area size, the number/size of ARMEABISupport mmap areas and the
++ * free memory pool (stderr, which !Run sends to <Wimp$ScrapDir>.OpenTTDlog). */
 +static void RiscOsMemoryReport()
 +{
++	if (_debug_driver_level < 1) return;
 +	static auto next = std::chrono::steady_clock::now();
 +	auto now = std::chrono::steady_clock::now();
 +	if (now < next) return;
@@ -61,7 +63,7 @@ index e57cfa6..fe6f72f 100644
 +	static uint64_t t0 = 0;
 +	uint64_t secs = std::chrono::duration_cast<std::chrono::seconds>(now.time_since_epoch()).count();
 +	if (t0 == 0) t0 = secs;
-+	fmt::print(stderr, "OpenTTD mem t={}s: heap DA {} KB, mmap areas {} ({} KB), free {} KB\n",
++	Debug(driver, 1, "RISC OS memory t={}s: heap DA {} KB, mmap areas {} ({} KB), free {} KB",
 +		secs - t0, heap / 1024, mmap_count, mmap_total / 1024, free_pool / 1024);
 +}
 +#endif
@@ -74,7 +76,7 @@ index e57cfa6..fe6f72f 100644
  	SDL_Event ev;
  
  	if (!SDL_PollEvent(&ev)) return false;
-@@ -503,9 +541,14 @@ bool VideoDriver_SDL_Base::PollEvent()
+@@ -503,9 +542,14 @@ bool VideoDriver_SDL_Base::PollEvent()
  				/* Ensure pointer lock will not occur. */
  				SDL_SetRelativeMouseMode(SDL_FALSE);
  			} else if (ev.window.event == SDL_WINDOWEVENT_LEAVE) {
@@ -89,7 +91,7 @@ index e57cfa6..fe6f72f 100644
  			}
  			break;
  		}
-@@ -545,6 +588,12 @@ const char *VideoDriver_SDL_Base::Start(const StringList &param)
+@@ -545,6 +589,12 @@ const char *VideoDriver_SDL_Base::Start(const StringList &param)
  
  	this->startup_display = FindStartupDisplay(GetDriverParamInt(param, "display", -1));
  
@@ -102,7 +104,7 @@ index e57cfa6..fe6f72f 100644
  	if (!CreateMainSurface(_cur_resolution.width, _cur_resolution.height, false)) {
  		return SDL_GetError();
  	}
-@@ -564,8 +613,13 @@ const char *VideoDriver_SDL_Base::Start(const StringList &param)
+@@ -564,8 +614,13 @@ const char *VideoDriver_SDL_Base::Start(const StringList &param)
  
  #ifdef __EMSCRIPTEN__
  	this->is_game_threaded = false;
@@ -116,7 +118,7 @@ index e57cfa6..fe6f72f 100644
  #endif
  
  	return nullptr;
-@@ -662,6 +716,22 @@ bool VideoDriver_SDL_Base::ChangeResolution(int w, int h)
+@@ -662,6 +717,22 @@ bool VideoDriver_SDL_Base::ChangeResolution(int w, int h)
  
  bool VideoDriver_SDL_Base::ToggleFullscreen(bool fullscreen)
  {

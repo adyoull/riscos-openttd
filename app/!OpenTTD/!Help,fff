@@ -96,9 +96,9 @@ Settings, saved games, screenshots and downloaded content are kept in
 
   <Choices$Write>.OpenTTD
 
-Messages from the game go into <Wimp$ScrapDir>.OpenTTDlog. Every 10
-seconds it also records how much memory the game is using, which is
-useful if something goes wrong.
+Messages from the game go into <Wimp$ScrapDir>.OpenTTDlog. If something
+goes wrong, it can also record how much memory the game is using every
+10 seconds: remove the | from the "Set OpenTTD$Debug" line in !Run.
 
 
 Two builds

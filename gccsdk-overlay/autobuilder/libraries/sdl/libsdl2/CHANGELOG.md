@@ -4,6 +4,22 @@ Changes made by the `.p` patches in this directory to SDL 2.26.0's RISC OS video
 driver (`src/video/riscos`), and to the GCCSDK autobuilder recipe, newest
 first.
 
+## 2026-09-27 (tidy-up, no change in behaviour)
+
+- `SDL_riscosvideo.h`: `RISCOS_IsWindowed(vdata)` replaces the
+  `wimp_window != 0` / `== 0` tests that were spread over the driver.
+- The scroll wheel baseline (`wheel_x/y`, `wheel_valid`) and the title bar
+  text (`window_title`) are in `SDL_VideoData` with the rest of the
+  driver's state, instead of file-level variables. The app name and icon
+  stay per process (they belong to the program), and the icon bar menu
+  block stays static (the Wimp reads it while the menu is open); both now
+  say why.
+- The one-desktop-window limit is written down in `SDL_VideoData`.
+- The window scale is read with `SDL_GetHint(SDL_HINT_RISCOS_WINDOW_SCALE)`
+  ("SDL_RISCOS_WINDOW_SCALE"), so a program can set it with `SDL_SetHint`
+  or the user as a system variable. `SDL$WindowScale` is still read when
+  the hint isn't set.
+
 ## 2026-09-26 (later)
 
 ### Short mouse clicks in a window were lost

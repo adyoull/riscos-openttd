@@ -5,6 +5,16 @@ See [PORTING-NOTES](../../docs/PORTING-NOTES.md) for more detail.
 
 ## 2026-09-27 (maintenance)
 
+### Memory report only when asked for
+- `09-sdl2-video.patch`: the RISC OS memory report is written with
+  `Debug(driver, 1, ...)` and only when the driver debug level is 1 or more
+  (`-d driver=1`, `OpenTTD$Debug` in `!Run`), instead of always.
+
+### NEON blitter
+- `12-neon-blitter.patch`: a comment at the top of `32bpp_neon.cpp` says it
+  follows the SSE blitter function by function, and that changes to the SSE
+  blitter need making here too (checked with `tools/blitter-test`).
+
 ### Patches split up
 - The single `openttd-14.1-riscos.patch` is now twelve patches in `14.1/`,
   one per change, each starting with a description of what it does and why.

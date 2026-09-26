@@ -6,6 +6,18 @@ SDL2 is listed in more detail here:
 - [OpenTTD changes](patches/openttd/CHANGELOG.md)
 - [SDL2 changes](gccsdk-overlay/autobuilder/libraries/sdl/libsdl2/CHANGELOG.md)
 
+## Unreleased
+
+- The memory report in `OpenTTDlog` is now off unless asked for: remove the
+  `|` from the `Set OpenTTD$Debug` line in `!Run` (it passes `-d driver=1`).
+- Tidier code, with no other change in behaviour:
+  - the OpenTTD changes are now one patch per change
+    (`patches/openttd/14.1/`), and the build scripts can be run again;
+  - in SDL, a `RISCOS_IsWindowed()` helper; the scroll wheel and window
+    title state are kept with the rest of the driver's state; the window
+    scale can also be set with the `SDL_RISCOS_WINDOW_SCALE` hint
+    (`SDL$WindowScale` still works).
+
 ## 14.1-riscos4 (tag `14.1.4`)
 
 Changes since 14.1-riscos3.

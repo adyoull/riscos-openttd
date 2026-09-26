@@ -8,10 +8,10 @@ For OpenTTD 14.1. See docs/PORTING-NOTES.md in riscos-openttd.
 
 diff --git a/src/blitter/32bpp_neon.cpp b/src/blitter/32bpp_neon.cpp
 new file mode 100644
-index 0000000..1c5a377
+index 0000000..3498703
 --- /dev/null
 +++ b/src/blitter/32bpp_neon.cpp
-@@ -0,0 +1,547 @@
+@@ -0,0 +1,555 @@
 +/*
 + * This file is part of OpenTTD.
 + * OpenTTD is free software; you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, version 2.
@@ -20,6 +20,14 @@ index 0000000..1c5a377
 + */
 +
 +/** @file 32bpp_neon.cpp ARM NEON 32 bpp blitter: a port of the SSE (SSSE3/SSE4) blitter in 32bpp_sse_func.hpp. */
++
++/*
++ * This file follows 32bpp_sse_func.hpp and 32bpp_sse2.cpp function by function
++ * (the encoder is Blitter_32bppSSE_Base::Encode), so the two can be read side
++ * by side. When the SSE blitter changes, make the same change here and run
++ * tools/blitter-test in riscos-openttd, which checks that both draw the same
++ * pixels.
++ */
 +
 +#include "../stdafx.h"
 +

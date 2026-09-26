@@ -1,5 +1,5 @@
 diff --git src/video/riscos/SDL_riscosevents.c src/video/riscos/SDL_riscosevents.c
-index fcca470..9a60485 100644
+index fcca470..6ba992f 100644
 --- src/video/riscos/SDL_riscosevents.c
 +++ src/video/riscos/SDL_riscosevents.c
 @@ -27,6 +27,7 @@
@@ -60,7 +60,7 @@ index fcca470..9a60485 100644
      int i;
  
 +    /* 2026: in windowed mode only read the keyboard while we have the focus. */
-+    if (driverdata->wimp_window != 0 && !driverdata->has_caret) {
++    if (RISCOS_IsWindowed(driverdata) && !driverdata->has_caret) {
 +        for (i = 0; i < RISCOS_MAX_KEYS_PRESSED; i++) {
 +            if (driverdata->key_pressed[i] != 255) {
 +                SDL_SendKeyboardKey(SDL_RELEASED, SDL_RISCOS_translate_keycode(driverdata->key_pressed[i]));
@@ -78,7 +78,7 @@ index fcca470..9a60485 100644
      }
  
 +    /* Typed characters (full screen; the Wimp delivers them when windowed). */
-+    if (driverdata->wimp_window == 0)
++    if (!RISCOS_IsWindowed(driverdata))
 +        RISCOS_DrainKeyboardBuffer();
 +
      /* Check for key presses */
@@ -93,9 +93,9 @@ index fcca470..9a60485 100644
 +/* 2026: mouse handling for a Wimp window. */
 +static void
 +RISCOS_PollMouseWindowed(_THIS)
- {
-     SDL_VideoData *driverdata = (SDL_VideoData *)_this->driverdata;
-     SDL_Mouse *mouse = SDL_GetMouse();
++{
++    SDL_VideoData *driverdata = (SDL_VideoData *)_this->driverdata;
++    SDL_Mouse *mouse = SDL_GetMouse();
 +    SDL_Window *window = driverdata->wimp_sdl_window;
 +    int xeig = driverdata->xeig, yeig = driverdata->yeig;
 +    int state[9], ptr[5], i, x, y, buttons;
@@ -180,13 +180,13 @@ index fcca470..9a60485 100644
 +
 +static void
 +RISCOS_PollMouseFullscreen(_THIS)
-+{
+ {
 +    /* 2026: always report against our (full screen) window rather than
 +       mouse->focus, so that once the pointer has touched a screen edge and
 +       SDL has dropped the focus, it gets it back; convert OS units with the
 +       real eigen factors instead of assuming 2 OS units per pixel. */
-+    SDL_VideoData *driverdata = (SDL_VideoData *)_this->driverdata;
-+    SDL_Mouse *mouse = SDL_GetMouse();
+     SDL_VideoData *driverdata = (SDL_VideoData *)_this->driverdata;
+     SDL_Mouse *mouse = SDL_GetMouse();
 +    SDL_Window *window = _this->windows ? _this->windows : mouse->focus;
      SDL_Rect rect;
      _kernel_swi_regs regs;
@@ -232,7 +232,7 @@ index fcca470..9a60485 100644
 +void
 +RISCOS_PollMouse(_THIS)
 +{
-+    if (((SDL_VideoData *)_this->driverdata)->wimp_window != 0) {
++    if (RISCOS_IsWindowed(((SDL_VideoData *)_this->driverdata))) {
 +        RISCOS_PollMouseWindowed(_this);
 +    } else {
 +        RISCOS_PollMouseFullscreen(_this);
@@ -242,11 +242,13 @@ index fcca470..9a60485 100644
  int
  RISCOS_InitEvents(_THIS)
  {
-@@ -165,10 +333,177 @@ RISCOS_InitEvents(_THIS)
+@@ -165,10 +333,176 @@ RISCOS_InitEvents(_THIS)
      return 0;
  }
  
 +/* Icon bar menu: just "Quit". */
++/* A Wimp menu block (header + one item). It stays static: the Wimp reads
++   it for as long as the menu is open. */
 +static int riscos_iconbar_menu[7 + 6] = {
 +    0, 0, 0,                       /* title, filled in below */
 +    0x00070207,                    /* title fg 7, bg 2, work fg 7, bg 0 */
@@ -305,14 +307,14 @@ index fcca470..9a60485 100644
 +            break;
 +        case 6:  /* Mouse_Click: the window's buttons are polled, but a short click
 +                    can come and go between two polls, so remember it */
-+            if (block[3] == driverdata->wimp_window && driverdata->wimp_window != 0) {
++            if (block[3] == driverdata->wimp_window && RISCOS_IsWindowed(driverdata)) {
 +                driverdata->pending_clicks |= block[2] & 7;
 +                driverdata->pending_click_x = block[0];
 +                driverdata->pending_click_y = block[1];
 +            } else if (block[3] == -2 && block[4] == driverdata->iconbar_icon) {
 +                if (block[2] & 2) {
 +                    RISCOS_IconbarMenu(block[0]);
-+                } else if (driverdata->wimp_window != 0) {
++                } else if (RISCOS_IsWindowed(driverdata)) {
 +                    /* Select/Adjust: bring the game window to the front. */
 +                    int state[9];
 +                    state[0] = driverdata->wimp_window;
@@ -368,9 +370,6 @@ index fcca470..9a60485 100644
 +   accumulated position of the "alternate positioning device" (the wheel),
 +   R0 = X, R1 = Y, +ve Y = wheel pushed away (scroll up). This works both
 +   in a window and in full screen. */
-+static int riscos_wheel_x, riscos_wheel_y;
-+static SDL_bool riscos_wheel_valid = SDL_FALSE;
-+
 +static void
 +RISCOS_PollWheel(_THIS)
 +{
@@ -383,16 +382,16 @@ index fcca470..9a60485 100644
 +    if (_kernel_swi(OS_Pointer, &regs, &regs) != NULL)
 +        return;                         /* no wheel support in this OS */
 +
-+    if (!riscos_wheel_valid) {          /* first read: just take a baseline */
-+        riscos_wheel_x = regs.r[0];
-+        riscos_wheel_y = regs.r[1];
-+        riscos_wheel_valid = SDL_TRUE;
++    if (!driverdata->wheel_valid) {     /* first read: just take a baseline */
++        driverdata->wheel_x = regs.r[0];
++        driverdata->wheel_y = regs.r[1];
++        driverdata->wheel_valid = SDL_TRUE;
 +        return;
 +    }
-+    dx = regs.r[0] - riscos_wheel_x;
-+    dy = regs.r[1] - riscos_wheel_y;
-+    riscos_wheel_x = regs.r[0];
-+    riscos_wheel_y = regs.r[1];
++    dx = regs.r[0] - driverdata->wheel_x;
++    dy = regs.r[1] - driverdata->wheel_y;
++    driverdata->wheel_x = regs.r[0];
++    driverdata->wheel_y = regs.r[1];
 +    if (dx == 0 && dy == 0)
 +        return;
 +    /* Ignore a counter wrap or anything implausible. */
@@ -400,7 +399,7 @@ index fcca470..9a60485 100644
 +        return;
 +
 +    /* Only while the pointer is over our window (always, in full screen). */
-+    if (driverdata->wimp_window != 0 && !driverdata->pointer_in)
++    if (RISCOS_IsWindowed(driverdata) && !driverdata->pointer_in)
 +        return;
 +    window = SDL_GetMouseFocus();
 +    if (window == NULL)
@@ -412,7 +411,7 @@ index fcca470..9a60485 100644
  RISCOS_PumpEvents(_THIS)
  {
 +    /* Only multitask while we have a desktop window; full screen owns the machine. */
-+    if (((SDL_VideoData *)_this->driverdata)->wimp_window != 0) {
++    if (RISCOS_IsWindowed(((SDL_VideoData *)_this->driverdata))) {
 +        RISCOS_PollWimp(_this);
 +    }
      RISCOS_PollMouse(_this);
