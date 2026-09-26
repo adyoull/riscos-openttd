@@ -95,10 +95,10 @@ index 54105bd..d7d36ac 100644
          cocoa_m.h
 diff --git a/src/music/midisynth_m.cpp b/src/music/midisynth_m.cpp
 new file mode 100644
-index 0000000..3572f8f
+index 0000000..cc0d0d8
 --- /dev/null
 +++ b/src/music/midisynth_m.cpp
-@@ -0,0 +1,107 @@
+@@ -0,0 +1,114 @@
 +/*
 + * This file is part of OpenTTD.
 + * OpenTTD is free software; you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, version 2.
@@ -149,7 +149,13 @@ index 0000000..3572f8f
 +
 +	/* Find out the sample rate without starting playback yet. */
 +	uint32_t samplerate = MxSetMusicSource(nullptr);
-+	if (samplerate == 0) return "No sound output to play music through";
++	/* Problems below don't stop the driver starting: a music driver named
++	 * with -m that fails to start stops the whole game, which is too harsh
++	 * for a missing or too-large SoundFont. The game just has no music. */
++	if (samplerate == 0) {
++		Debug(driver, 0, "midisynth: no sound output to play music through; music is off");
++		return nullptr;
++	}
 +
 +	if (sfont_name != nullptr) {
 +		_ms = midisynth_create(sfont_name, samplerate);
@@ -161,8 +167,9 @@ index 0000000..3572f8f
 +		}
 +	}
 +	if (_ms == nullptr) {
-+		Debug(driver, 0, "midisynth: {}", midisynth_error());
-+		return "Could not open a SoundFont (install !MIDISynth, or use -m midisynth:soundfont=<file>)";
++		/* Also what happens if a big SF3 SoundFont doesn't fit in memory. */
++		Debug(driver, 0, "midisynth: {}; music is off (install !MIDISynth, or use -m midisynth:soundfont=<file>)", midisynth_error());
++		return nullptr;
 +	}
 +	Debug(driver, 1, "midisynth: samplerate {}", samplerate);
 +

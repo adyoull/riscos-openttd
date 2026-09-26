@@ -71,8 +71,13 @@ full screen only.
   driver. It has no sound output of its own.
 - SoundFont: `-m midisynth:soundfont=<file>`, else `MIDISynth$SoundFont`
   (set by `!MIDISynth`), else `<OpenTTD$Dir>.SoundFont` (from the Music zip).
-  `!Run` only selects the driver when one of these exists, because a
-  driver named with `-m` that fails to start stops the game.
+  `!Run` only selects the driver when one of these exists. A music driver
+  named with `-m` that fails to start stops the whole game, so if the
+  SoundFont won't load (for example a big SF3 that doesn't fit in memory)
+  the driver still starts, logs why, and plays nothing.
+- SF2 and SF3 SoundFonts both work (midisynth 0.3.0). SF3 is decoded into
+  memory at start-up, so a large one can use hundreds of MB of the game's
+  512MB heap.
 
 ## UnixLib (`patches/unixlib`)
 

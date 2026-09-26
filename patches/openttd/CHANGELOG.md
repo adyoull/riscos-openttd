@@ -12,6 +12,10 @@ See [PORTING-NOTES](../../docs/PORTING-NOTES.md) for more detail.
   effects. Built when `libmidisynth.a` is installed.
 - `!Run` uses `-m midisynth` when there's a SoundFont (`MIDISynth$SoundFont`
   or `!OpenTTD.SoundFont`) and sound is on, and `-m null` otherwise.
+- If the SoundFont can't be loaded (missing, or too big for memory), or
+  there's no sound output, the driver still starts and logs why, so the
+  game runs without music instead of stopping with "Failed to select
+  requested music driver".
 
 ## 2026-09-26
 

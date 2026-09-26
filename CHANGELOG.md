@@ -18,8 +18,10 @@ Changes since 14.1-riscos2.
   with the new `midisynth` music driver. It comes in a third zip
   (`OpenTTD-14.1-riscos-Music.zip`: OpenMSX and the TimGM6mb SoundFont).
   If `!MIDISynth` is installed, its SoundFont is used instead.
-  Built with midisynth 0.2.0, which uses about a fifth less processor
-  time than 0.1.0 and stops synthesising when the music volume is 0.
+  Built with midisynth 0.3.0, which uses about a fifth less processor
+  time than 0.1.0, stops synthesising when the music volume is 0, and can
+  use SF3 (compressed) SoundFonts as well as SF2. If the SoundFont can't
+  be loaded, the game starts without music instead of stopping.
 
 ## 14.1-riscos2 (tag '14.1.2')
 
