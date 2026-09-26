@@ -1,0 +1,47 @@
+RISC OS file locations.
+
+No XDG directories: the "home" directory is <Choices$Write>, so settings
+and saved games go in <Choices$Write>.OpenTTD. FioFOpenFile doesn't retry
+a missing file in lower case: RISC OS filing systems are case-insensitive,
+so the retry only costs time.
+
+For OpenTTD 14.1. See docs/PORTING-NOTES.md in riscos-openttd.
+
+diff --git a/src/fileio.cpp b/src/fileio.cpp
+index 15c519b..53a93ac 100644
+--- a/src/fileio.cpp
++++ b/src/fileio.cpp
+@@ -220,7 +220,7 @@ static FILE *FioFOpenFileSp(const std::string &filename, const char *mode, Searc
+ #endif
+ 
+ 	f = fopen(buf.c_str(), mode);
+-#if !defined(_WIN32)
++#if !defined(_WIN32) && !defined(__riscos__) /* RISC OS filing systems are case-insensitive: retrying in lower case only costs time. */
+ 	if (f == nullptr && strtolower(buf, subdir == NO_DIRECTORY ? 0 : _searchpaths[sp].size() - 1) ) {
+ 		f = fopen(buf.c_str(), mode);
+ 	}
+@@ -826,7 +826,10 @@ bool DoScanWorkingDirectory()
+  */
+ static std::string GetHomeDir()
+ {
+-#ifdef __HAIKU__
++#if defined(__riscos__)
++	/* UnixLib maps this to <Choices$Write>, the RISC OS per-user choices location. */
++	return std::string("/<Choices$Write>");
++#elif defined(__HAIKU__)
+ 	BPath path;
+ 	find_directory(B_USER_SETTINGS_DIRECTORY, &path);
+ 	return std::string(path.Path());
+diff --git a/src/stdafx.h b/src/stdafx.h
+index 9ff07ae..90277ac 100644
+--- a/src/stdafx.h
++++ b/src/stdafx.h
+@@ -273,7 +273,7 @@ typedef uint8_t byte;
+ #endif
+ 
+ /* Define the the platforms that use XDG */
+-#if defined(WITH_PERSONAL_DIR) && defined(UNIX) && !defined(__APPLE__) && !defined(__EMSCRIPTEN__)
++#if defined(WITH_PERSONAL_DIR) && defined(UNIX) && !defined(__APPLE__) && !defined(__EMSCRIPTEN__) && !defined(__riscos__)
+ #	define USE_XDG
+ #endif
+ 

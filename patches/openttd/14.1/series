@@ -1,0 +1,12 @@
+01-no-rdynamic.patch
+02-network-compat.patch
+03-libc-compat.patch
+04-riscos-paths.patch
+05-command-line.patch
+06-heap-dynamic-area.patch
+07-sprite-cache.patch
+08-textfile-probing.patch
+09-sdl2-video.patch
+10-screen-colour-order.patch
+11-midisynth-music.patch
+12-neon-blitter.patch

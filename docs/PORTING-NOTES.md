@@ -1,22 +1,39 @@
 # Porting notes
 
-## OpenTTD patch (`patches/openttd/openttd-14.1-riscos.patch`)
+## OpenTTD patches (`patches/openttd/14.1/`)
 
-| File | Change |
-|------|--------|
-| `cmake/CompileFlags.cmake` | No `-rdynamic` (GCCSDK doesn't support it) |
-| `src/network/core/os_abstraction.h`, `host.cpp` | No `ifaddrs.h`. `AI_ADDRCONFIG` fallback. Broadcast discovery uses `INADDR_BROADCAST` |
-| `src/string_func.h` | UnixLib has `strcasestr` |
-| `src/ini.cpp` | No `fdatasync` |
-| `src/stdafx.h`, `src/fileio.cpp` | No XDG directories. The home directory is `<Choices$Write>`. No lower-case retry in `FioFOpenFile` (file probing is slow on RISC OS) |
-| `src/openttd.cpp` | Logs its arguments to stderr and ignores stray non-option arguments (from `!Run`) |
-| `src/os/unix/unix_main.cpp` | The C heap is a dynamic area named "OpenTTD Heap" (up to 512MB) |
-| `src/spritecache.cpp` | Sprite cache capped at 128 MiB, and allocated without the 1.5x probe |
-| `src/textfile_gui.cpp` | `GetTextfile` results are cached. Only `.txt`/`.md` are probed on RISC OS (this was a multi-second pause opening Game Options) |
-| `src/video/sdl2_default_v.cpp` | The RISC OS screen is XBGR8888: draw into an XRGB8888 shadow surface and swap red and blue one word at a time in `Paint()` |
-| `src/music/midisynth_m.cpp`, `CMakeLists.txt` | New `midisynth` music driver: renders MIDI through a SoundFont with the [midisynth](https://github.com/adyoull/riscos-midisynth) library, into OpenTTD's own mixer (like the FluidSynth driver). Built when `libmidisynth.a` is found |
-| `src/blitter/32bpp_neon.cpp/.hpp`, `src/blitter/CMakeLists.txt` | Optional `32bpp-neon` blitter: a NEON port of the SSE blitter, bit-identical to `32bpp-sse4`. Only in NEON builds; chosen with `-b 32bpp-neon` (`OpenTTD$Blitter` in `!Run`) |
-| `src/video/sdl2_v.cpp` | Memory report every 10s. `-v sdl:windowed` / `sdl:fullscreen`. Full screen toggles by recreating the window. Drawing from the game thread is off by default |
+The changes to OpenTTD are a series of small patches, one per change, applied
+in the order listed in `series`. Each one starts with a few lines saying what
+it does and why. No file is changed by more than one patch, so each patch also
+applies on its own. `build/package.sh` joins them into one
+`openttd-14.1-riscos.patch` for the release page and the app's `docs`.
+
+| Patch | File | Change |
+|-------|------|--------|
+| 01 | `cmake/CompileFlags.cmake` | No `-rdynamic` (GCCSDK doesn't support it) |
+| 02 | `src/network/core/os_abstraction.h`, `host.cpp` | No `ifaddrs.h`. `AI_ADDRCONFIG` fallback. Broadcast discovery uses `INADDR_BROADCAST` |
+| 03 | `src/string_func.h` | UnixLib has `strcasestr` |
+| 03 | `src/ini.cpp` | No `fdatasync` |
+| 04 | `src/stdafx.h`, `src/fileio.cpp` | No XDG directories. The home directory is `<Choices$Write>`. No lower-case retry in `FioFOpenFile` (file probing is slow on RISC OS) |
+| 05 | `src/openttd.cpp` | Logs its arguments to stderr and ignores stray non-option arguments (from `!Run`) |
+| 06 | `src/os/unix/unix_main.cpp` | The C heap is a dynamic area named "OpenTTD Heap" (up to 512MB) |
+| 07 | `src/spritecache.cpp` | Sprite cache capped at 128 MiB, and allocated without the 1.5x probe |
+| 08 | `src/textfile_gui.cpp` | `GetTextfile` results are cached. Only `.txt`/`.md` are probed on RISC OS (this was a multi-second pause opening Game Options) |
+| 09 | `src/video/sdl2_v.cpp` | Memory report every 10s. `-v sdl:windowed` / `sdl:fullscreen`. Full screen toggles by recreating the window. Drawing from the game thread is off by default |
+| 10 | `src/video/sdl2_default_v.cpp` | The RISC OS screen is XBGR8888: draw into an XRGB8888 shadow surface and swap red and blue one word at a time in `Paint()` |
+| 11 | `src/music/midisynth_m.cpp`, `CMakeLists.txt` | New `midisynth` music driver: renders MIDI through a SoundFont with the [midisynth](https://github.com/adyoull/riscos-midisynth) library, into OpenTTD's own mixer (like the FluidSynth driver). Built when `libmidisynth.a` is found |
+| 12 | `src/blitter/32bpp_neon.cpp/.hpp`, `src/blitter/CMakeLists.txt` | Optional `32bpp-neon` blitter: a NEON port of the SSE blitter, bit-identical to `32bpp-sse4`. Only in NEON builds; chosen with `-b 32bpp-neon` (`OpenTTD$Blitter` in `!Run`) |
+
+### Moving to a newer OpenTTD
+
+1. Make `patches/openttd/<version>/` with a copy of the 14.1 patches and
+   `series`, and set `OPENTTD_REF` and `OPENTTD_PATCHES` (see `build/env.sh`).
+2. Run `build/build-openttd.sh`. It stops at the first patch that doesn't
+   apply. Apply that one by hand (`git apply --reject` shows the parts that
+   failed), make the changes it describes, then save it again with
+   `git diff -- <its files>` below its description.
+3. Patches whose change is already in the new OpenTTD can be dropped from
+   `series`.
 
 ## SDL 2.26 RISC OS driver (`gccsdk-overlay/…/libsdl2`)
 

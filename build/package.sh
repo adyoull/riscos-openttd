@@ -22,7 +22,9 @@ cp -a "$B/lang" "$B/ai" "$B/game" "$APP/"
 cp -a "$GFX" "$APP/baseset/opengfx"
 cp "$OPENTTD_SRC/COPYING.md" "$APP/docs/COPYING,fff"
 cp "$OPENTTD_SRC/README.md" "$APP/docs/README,fff"
-cp "$REPO_DIR/patches/openttd/openttd-14.1-riscos.patch" "$APP/docs/riscos-patch,fff"
+# All the OpenTTD patches in one file, for the app and the release page.
+cat $(openttd_patches) > "$OUT/openttd-14.1-riscos.patch"
+cp "$OUT/openttd-14.1-riscos.patch" "$APP/docs/riscos-patch,fff"
 ZIP="$GCCSDK_INSTALL_ENV/bin/zip"   # GCCSDK zip: -, stores RISC OS filetypes
 ( cd "$OUT" && "$ZIP" -, -9 -r OpenTTD-14.1-riscos.zip '!OpenTTD' )
 if [ -n "$SFX" ]; then

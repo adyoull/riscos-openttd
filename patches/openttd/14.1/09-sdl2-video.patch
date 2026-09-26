@@ -1,0 +1,141 @@
+SDL2 video driver behaviour on RISC OS.
+
+- memory report every 10 seconds to stderr (!Run sends it to OpenTTDlog);
+- -v sdl:windowed / sdl:fullscreen, so !Run can choose;
+- switching full screen recreates the window (the RISC OS SDL driver can't
+  switch an existing window);
+- the pointer never "leaves" in full screen;
+- drawing on the game thread is off by default (-v sdl:threads turns it on).
+
+For OpenTTD 14.1. See docs/PORTING-NOTES.md in riscos-openttd.
+
+diff --git a/src/video/sdl2_v.cpp b/src/video/sdl2_v.cpp
+index e57cfa6..fe6f72f 100644
+--- a/src/video/sdl2_v.cpp
++++ b/src/video/sdl2_v.cpp
+@@ -181,6 +181,9 @@ bool VideoDriver_SDL_Base::CreateMainWindow(uint w, uint h, uint flags)
+ 
+ bool VideoDriver_SDL_Base::CreateMainSurface(uint w, uint h, bool resize)
+ {
++	/* On RISC OS, full screen selects (and switches to) a real screen mode via
++	 * SDL's display modes; windowed mode opens a desktop (Wimp) window of the
++	 * chosen size. SDL restores the desktop mode on exit. */
+ 	GetAvailableVideoMode(&w, &h);
+ 	Debug(driver, 1, "SDL2: using mode {}x{}", w, h);
+ 
+@@ -193,6 +196,7 @@ bool VideoDriver_SDL_Base::CreateMainSurface(uint w, uint h, bool resize)
+ 	 * appropriate event to know this. */
+ 	if (_fullscreen) _cursor.in_window = true;
+ 
++
+ 	return true;
+ }
+ 
+@@ -373,8 +377,42 @@ static uint ConvertSdlKeycodeIntoMy(SDL_Keycode kc)
+ 	return key;
+ }
+ 
++#if defined(__riscos__)
++#include <swis.h>
++/** RISC OS diagnostics: every 10 seconds, log the heap dynamic area size, the
++ * number/size of ARMEABISupport mmap areas and the free memory pool to stderr
++ * (which !Run sends to <Wimp$ScrapDir>.OpenTTDlog). */
++static void RiscOsMemoryReport()
++{
++	static auto next = std::chrono::steady_clock::now();
++	auto now = std::chrono::steady_clock::now();
++	if (now < next) return;
++	next = now + std::chrono::seconds(10);
++
++	unsigned int heap = 0, mmap_total = 0, mmap_count = 0, free_pool = 0;
++	int area = -1;
++	for (int guard = 0; guard < 4096; guard++) {
++		if (_swix(OS_DynamicArea, _INR(0, 1) | _OUT(1), 3, area, &area) != nullptr || area == -1) break;
++		unsigned int size = 0;
++		const char *name = nullptr;
++		if (_swix(OS_DynamicArea, _INR(0, 1) | _OUT(2) | _OUT(8), 2, area, &size, &name) != nullptr || name == nullptr) continue;
++		if (strncmp(name, "OpenTTD Heap", 12) == 0) heap += size;
++		if (strncmp(name, "mmap", 4) == 0) { mmap_total += size; mmap_count++; }
++	}
++	_swix(OS_ReadDynamicArea, _IN(0) | _OUT(1), 6, &free_pool);
++	static uint64_t t0 = 0;
++	uint64_t secs = std::chrono::duration_cast<std::chrono::seconds>(now.time_since_epoch()).count();
++	if (t0 == 0) t0 = secs;
++	fmt::print(stderr, "OpenTTD mem t={}s: heap DA {} KB, mmap areas {} ({} KB), free {} KB\n",
++		secs - t0, heap / 1024, mmap_count, mmap_total / 1024, free_pool / 1024);
++}
++#endif
++
+ bool VideoDriver_SDL_Base::PollEvent()
+ {
++#if defined(__riscos__)
++	RiscOsMemoryReport();
++#endif
+ 	SDL_Event ev;
+ 
+ 	if (!SDL_PollEvent(&ev)) return false;
+@@ -503,9 +541,14 @@ bool VideoDriver_SDL_Base::PollEvent()
+ 				/* Ensure pointer lock will not occur. */
+ 				SDL_SetRelativeMouseMode(SDL_FALSE);
+ 			} else if (ev.window.event == SDL_WINDOWEVENT_LEAVE) {
++#if defined(__riscos__)
++				if (!_fullscreen) /* Full screen: the pointer can never leave. */
++#endif
++				{
+ 				// mouse left the window, undraw cursor
+ 				UndrawMouseCursor();
+ 				_cursor.in_window = false;
++				}
+ 			}
+ 			break;
+ 		}
+@@ -545,6 +588,12 @@ const char *VideoDriver_SDL_Base::Start(const StringList &param)
+ 
+ 	this->startup_display = FindStartupDisplay(GetDriverParamInt(param, "display", -1));
+ 
++#if defined(__riscos__)
++	/* Let !Run choose: -v sdl:fullscreen or -v sdl:windowed (and -r WxH for the size). */
++	if (GetDriverParamBool(param, "fullscreen")) _fullscreen = true;
++	if (GetDriverParamBool(param, "windowed")) _fullscreen = false;
++#endif
++
+ 	if (!CreateMainSurface(_cur_resolution.width, _cur_resolution.height, false)) {
+ 		return SDL_GetError();
+ 	}
+@@ -564,8 +613,13 @@ const char *VideoDriver_SDL_Base::Start(const StringList &param)
+ 
+ #ifdef __EMSCRIPTEN__
+ 	this->is_game_threaded = false;
++#else
++#if defined(__riscos__)
++	/* Default to single-threaded drawing on RISC OS; opt in with -v sdl:threads. */
++	this->is_game_threaded = GetDriverParamBool(param, "threads");
+ #else
+ 	this->is_game_threaded = !GetDriverParamBool(param, "no_threads") && !GetDriverParamBool(param, "no_thread");
++#endif
+ #endif
+ 
+ 	return nullptr;
+@@ -662,6 +716,22 @@ bool VideoDriver_SDL_Base::ChangeResolution(int w, int h)
+ 
+ bool VideoDriver_SDL_Base::ToggleFullscreen(bool fullscreen)
+ {
++#if defined(__riscos__)
++	/* The RISC OS SDL driver can't switch an existing window between the
++	 * desktop and full screen, so recreate it. */
++	{
++		int cw, ch;
++		SDL_GetWindowSize(this->sdl_window, &cw, &ch);
++		_fullscreen = fullscreen;
++		SDL_DestroyWindow(this->sdl_window);
++		this->sdl_window = nullptr;
++		uint nw = _cur_resolution.width, nh = _cur_resolution.height;
++		if (nw == 0 || nh == 0) { nw = cw; nh = ch; }
++		bool ok = this->CreateMainSurface(nw, nh, false);
++		InvalidateWindowClassesData(WC_GAME_OPTIONS, 3);
++		return ok;
++	}
++#endif
+ 	/* Remember current window size */
+ 	int w, h;
+ 	SDL_GetWindowSize(this->sdl_window, &w, &h);

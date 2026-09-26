@@ -1,9 +1,11 @@
 #!/bin/bash -e
 # Patch, configure and build OpenTTD 14.1 for RISC OS.
 . "$(dirname "$0")/env.sh"
+use_ref "$OPENTTD_SRC" "$OPENTTD_REF"
+for p in $(openttd_patches); do
+  apply_once "$OPENTTD_SRC" "$p"
+done
 cd "$OPENTTD_SRC"
-git checkout 14.1
-git apply "$REPO_DIR/patches/openttd/openttd-14.1-riscos.patch"
 
 # Host tools (strgen, settingsgen) built for the build machine.
 mkdir -p build-host

@@ -1,0 +1,93 @@
+Faster readme/licence lookups.
+
+GetTextfile() results are cached, and only .txt/.md files are looked for
+(no .gz/.xz). Opening Game Options probed hundreds of file names and took
+seconds on an SD card.
+
+For OpenTTD 14.1. See docs/PORTING-NOTES.md in riscos-openttd.
+
+diff --git a/src/textfile_gui.cpp b/src/textfile_gui.cpp
+index c07133f..05793dc 100644
+--- a/src/textfile_gui.cpp
++++ b/src/textfile_gui.cpp
+@@ -29,12 +29,14 @@
+ #include <zlib.h>
+ #endif
+ 
+-#if defined(WITH_LIBLZMA)
++#if defined(WITH_LIBLZMA) && !defined(__riscos__)
+ #include <lzma.h>
+ #endif
+ 
+ #include <regex>
+ 
++#include <map>
++
+ #include "safeguards.h"
+ 
+ /** Widgets for the textfile window. */
+@@ -704,7 +706,7 @@ static void Gunzip(byte **bufp, size_t *sizep)
+ }
+ #endif
+ 
+-#if defined(WITH_LIBLZMA)
++#if defined(WITH_LIBLZMA) && !defined(__riscos__)
+ 
+ /**
+  * Do an in-memory xunzip operation. This works on a .xz or (legacy)
+@@ -792,7 +794,7 @@ static void Xunzip(byte **bufp, size_t *sizep)
+ 	if (textfile.ends_with(".gz")) Gunzip((byte**)&buf, &filesize);
+ #endif
+ 
+-#if defined(WITH_LIBLZMA)
++#if defined(WITH_LIBLZMA) && !defined(__riscos__)
+ 	/* In-place xunzip */
+ 	if (textfile.ends_with(".xz")) Xunzip((byte**)&buf, &filesize);
+ #endif
+@@ -862,7 +864,30 @@ void TextfileWindow::LoadText(std::string_view buf)
+  * @param filename The filename of the content to look for.
+  * @return The path to the textfile, \c nullptr otherwise.
+  */
++static std::optional<std::string> GetTextfileUncached(TextfileType type, Subdirectory dir, const std::string &filename);
++
++/**
++ * Search a textfile file next to the given content.
++ * Results are remembered: each lookup probes many file names across every
++ * search path, and opening Game Options does this for every base set file,
++ * which took seconds on slower filing systems (e.g. RISC OS on an SD card).
++ * @param type The type of the textfile to search for.
++ * @param dir The subdirectory to search in.
++ * @param filename The filename of the content to look for.
++ * @return The path to the textfile, \c nullptr otherwise.
++ */
+ std::optional<std::string> GetTextfile(TextfileType type, Subdirectory dir, const std::string &filename)
++{
++	static std::map<std::string, std::optional<std::string>> cache;
++	std::string key = fmt::format("{}|{}|{}|{}", (int)type, (int)dir, GetCurrentLanguageIsoCode(), filename);
++	auto it = cache.find(key);
++	if (it != cache.end()) return it->second;
++	auto result = GetTextfileUncached(type, dir, filename);
++	cache[key] = result;
++	return result;
++}
++
++static std::optional<std::string> GetTextfileUncached(TextfileType type, Subdirectory dir, const std::string &filename)
+ {
+ 	static const char * const prefixes[] = {
+ 		"readme",
+@@ -886,11 +911,13 @@ std::optional<std::string> GetTextfile(TextfileType type, Subdirectory dir, cons
+ 	static const std::initializer_list<std::string_view> extensions{
+ 		"txt",
+ 		"md",
+-#if defined(WITH_ZLIB)
++#if defined(__riscos__)
++		/* Compressed text files are not shipped on RISC OS; skip probing for them. */
++#elif defined(WITH_ZLIB)
+ 		"txt.gz",
+ 		"md.gz",
+ #endif
+-#if defined(WITH_LIBLZMA)
++#if defined(WITH_LIBLZMA) && !defined(__riscos__)
+ 		"txt.xz",
+ 		"md.xz",
+ #endif

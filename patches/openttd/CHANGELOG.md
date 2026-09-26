@@ -1,7 +1,18 @@
 # OpenTTD changes for RISC OS
 
-Changes made by `openttd-14.1-riscos.patch` to OpenTTD 14.1, newest first.
+Changes made by the patches in `14.1/` to OpenTTD 14.1, newest first.
 See [PORTING-NOTES](../../docs/PORTING-NOTES.md) for more detail.
+
+## 2026-09-27 (maintenance)
+
+### Patches split up
+- The single `openttd-14.1-riscos.patch` is now twelve patches in `14.1/`,
+  one per change, each starting with a description of what it does and why.
+  Applied in order they give exactly the same source as before.
+  `build/package.sh` still makes the combined `openttd-14.1-riscos.patch`.
+- The build scripts can be run again after a failure (patches already
+  applied are skipped), and they check out the tested GCCSDK commit and
+  OpenTTD tag.
 
 ## 2026-09-27 (later)
 

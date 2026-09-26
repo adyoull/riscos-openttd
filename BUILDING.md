@@ -10,10 +10,18 @@ The release builds were made on Ubuntu with GCC 9 as the host compiler.
 
 ```sh
 mkdir -p ~/riscos && cd ~/riscos
-git clone https://github.com/jhamby/riscos-gccsdk gccsdk      # tested at 64c6f81
+git clone https://github.com/jhamby/riscos-gccsdk gccsdk
 git clone https://github.com/OpenTTD/OpenTTD                   # tag 14.1
 git clone https://github.com/adyoull/riscos-openttd
 ```
+
+The scripts check out the versions the port is tested with: GCCSDK commit
+`64c6f81` and OpenTTD tag `14.1` (`GCCSDK_REF` and `OPENTTD_REF` in
+`build/env.sh`). They won't switch a clone that has local changes; set the
+variable to `HEAD` to build whatever is checked out.
+
+All the scripts can be run again, for example after fixing a problem with
+the build machine: patches that are already applied are skipped.
 
 The scripts look for these under `~/riscos`. Set `GCCSDK_SRC`, `OPENTTD_SRC` and
 `AB_DIR` to use other locations (see `build/env.sh`).
@@ -89,7 +97,8 @@ riscos-openttd/build/build-openttd.sh
 
 This script:
 
-- checks out tag 14.1 and applies `patches/openttd/openttd-14.1-riscos.patch`;
+- checks out tag 14.1 and applies the patches in `patches/openttd/14.1`, in
+  the order given in its `series` file;
 - builds the host tools (`build-host`);
 - configures the cross build with `build/toolchain-riscos.cmake`;
 - builds the standard program in `build-ro` and the NEON one

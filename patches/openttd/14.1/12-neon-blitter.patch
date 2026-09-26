@@ -1,0 +1,672 @@
+Optional NEON blitter (32bpp-neon).
+
+A port of the SSE blitter to ARM NEON, bit-identical to 32bpp-sse4 (tested
+with tools/blitter-test). Compiles to nothing without __ARM_NEON; chosen
+with -b 32bpp-neon.
+
+For OpenTTD 14.1. See docs/PORTING-NOTES.md in riscos-openttd.
+
+diff --git a/src/blitter/32bpp_neon.cpp b/src/blitter/32bpp_neon.cpp
+new file mode 100644
+index 0000000..1c5a377
+--- /dev/null
++++ b/src/blitter/32bpp_neon.cpp
+@@ -0,0 +1,547 @@
++/*
++ * This file is part of OpenTTD.
++ * OpenTTD is free software; you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, version 2.
++ * OpenTTD is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
++ * See the GNU General Public License for more details. You should have received a copy of the GNU General Public License along with OpenTTD. If not, see <http://www.gnu.org/licenses/>.
++ */
++
++/** @file 32bpp_neon.cpp ARM NEON 32 bpp blitter: a port of the SSE (SSSE3/SSE4) blitter in 32bpp_sse_func.hpp. */
++
++#include "../stdafx.h"
++
++#if defined(__ARM_NEON)
++
++#include "../zoom_func.h"
++#include "../settings_type.h"
++#include "../palette_func.h"
++#include "32bpp_neon.hpp"
++
++#include <arm_neon.h>
++
++#include "../safeguards.h"
++
++/** Instantiation of the NEON 32bpp blitter factory. It is only used when asked for (-b 32bpp-neon). */
++static FBlitter_32bppNEON iFBlitter_32bppNEON;
++
++#define META_LENGTH 2 ///< Number of uint32_t inserted before each line of pixels in a sprite.
++#define MARGIN_NORMAL_THRESHOLD (zoom == ZOOM_LVL_OUT_32X ? 8 : 4) ///< Minimum width to use margins with BM_NORMAL.
++#define MARGIN_REMAP_THRESHOLD 4 ///< Minimum width to use margins with BM_COLOUR_REMAP.
++
++/*
++ * Two pixels are held in a 64-bit register (uint8x8_t: b, g, r, a, b, g, r, a) and
++ * widened to 16 bits per channel (uint16x8_t) for the arithmetic, exactly as the
++ * SSE blitter does with _mm_unpacklo_epi8. Lanes 3 and 7 are the alpha channels.
++ */
++
++/** 0xFFFF in the colour lanes, 0 in the alpha lanes. */
++static inline uint16x8_t RGBLanes()
++{
++	static const uint16_t m[8] = { 0xFFFF, 0xFFFF, 0xFFFF, 0, 0xFFFF, 0xFFFF, 0xFFFF, 0 };
++	return vld1q_u16(m);
++}
++
++/** Copy each pixel's alpha into its three colour lanes; the alpha lanes become 0. */
++static inline uint16x8_t DistributeAlpha(uint16x8_t from)
++{
++	uint16x8_t a = vcombine_u16(vdup_lane_u16(vget_low_u16(from), 3), vdup_lane_u16(vget_high_u16(from), 3));
++	return vandq_u16(a, RGBLanes());
++}
++
++/** Load two pixels. */
++static inline uint8x8_t LoadTwoPixels(const Colour *p)
++{
++	return vld1_u8(reinterpret_cast<const uint8_t *>(p));
++}
++
++/** Put one pixel in the low half of a register; the other pixel is 0. */
++static inline uint8x8_t LoadOnePixel(uint32_t data)
++{
++	return vreinterpret_u8_u32(vset_lane_u32(data, vdup_n_u32(0), 0));
++}
++
++/** The low pixel of a register. */
++static inline uint32_t FirstPixel(uint8x8_t v)
++{
++	return vget_lane_u32(vreinterpret_u32_u8(v), 0);
++}
++
++/**
++ * Alpha blend two pixels: rgb = a' * (src - dst) / 256 + dst, where a' is the source
++ * alpha plus one (if not 0). The result is opaque where the source isn't
++ * transparent, otherwise it keeps the destination's alpha. (AlphaBlendTwoPixels in
++ * 32bpp_sse_func.hpp.)
++ */
++static inline uint8x8_t AlphaBlendTwoPixels(uint8x8_t src, uint8x8_t dst)
++{
++	const uint16x8_t srcAB = vmovl_u8(src);
++	const uint16x8_t dstAB = vmovl_u8(dst);
++
++	uint16x8_t alphaAB = DistributeAlpha(srcAB);
++	alphaAB = vaddq_u16(alphaAB, vminq_u16(alphaAB, vdupq_n_u16(1))); // if (alpha > 0) a++;
++
++	uint16x8_t res = vsubq_u16(srcAB, dstAB);  // (r - Cr), wrapping like PSUBW
++	res = vmulq_u16(res, alphaAB);             // a*(r - Cr), low 16 bits like PMULLW
++	res = vshrq_n_u16(res, 8);                 // a*(r - Cr)/256
++	res = vaddq_u16(res, dstAB);               // a*(r - Cr)/256 + Cr
++
++	/* Alpha lanes: 0xFFFF if the source alpha is > 0 (the colour lanes already have 0 added). */
++	const uint16x8_t opaque = vbicq_u16(vtstq_u16(srcAB, srcAB), RGBLanes());
++	res = vorrq_u16(res, opaque);
++
++	return vmovn_u16(res); // keep the low bytes
++}
++
++/**
++ * Darken two pixels: rgb = rgb * (256 - alpha/4) / 256. (DarkenTwoPixels in
++ * 32bpp_sse_func.hpp.)
++ */
++static inline uint8x8_t DarkenTwoPixels(uint8x8_t src, uint8x8_t dst)
++{
++	const uint16x8_t srcAB = vmovl_u8(src);
++	uint16x8_t dstAB = vmovl_u8(dst);
++	uint16x8_t alphaAB = vshrq_n_u16(DistributeAlpha(srcAB), 2); // Reduce to 64 levels of shades so the max value fits in 16 bits.
++	const uint16x8_t nom = vsubq_u16(vdupq_n_u16(256), alphaAB);
++	dstAB = vmulq_u16(dstAB, nom);
++	dstAB = vshrq_n_u16(dstAB, 8);
++	return vqmovn_u16(dstAB);
++}
++
++/**
++ * Adjust the brightness of one colour, with "overbright" spreading into the other
++ * channels. A scalar copy of ReallyAdjustBrightness() in 32bpp_sse_func.hpp, giving
++ * the same results.
++ */
++static Colour ReallyAdjustBrightness(Colour colour, uint8_t brightness)
++{
++	uint64_t c16 = colour.b | (uint64_t) colour.g << 16 | (uint64_t) colour.r << 32;
++	c16 *= brightness;
++	uint64_t c16_ob = c16; // Helps out of order execution.
++	c16 /= Blitter_32bppBase::DEFAULT_BRIGHTNESS;
++	c16 &= 0x01FF01FF01FFULL;
++
++	/* Sum overbright (maximum for each rgb is 508, 9 bits, -255 is changed in -256 so we just have to take the 8 lower bits into account). */
++	c16_ob = (((c16_ob >> (8 + 7)) & 0x0100010001ULL) * 0xFF) & c16;
++	const uint ob = ((uint16_t) c16_ob + (uint16_t) (c16_ob >> 16) + (uint16_t) (c16_ob >> 32)) / 2;
++
++	uint32_t out = colour.data & 0xFF000000;
++	for (int i = 0; i < 3; i++) {
++		uint v = (uint) (c16 >> (16 * i)) & 0xFFFF;
++		if (ob != 0) {
++			const uint inv = v < 255 ? 255 - v : 0;           // PSUBUSW, (255 - rgb)
++			v = (((inv * ob) & 0xFFFF) >> 8) + v;             // PMULLW + PSRLW + PADDW
++		}
++		out |= (uint32_t) std::min<uint>(v, 255) << (8 * i); // PACKUSWB
++	}
++	return Colour(out);
++}
++
++/** Shortcut for normal brightness. */
++static inline Colour AdjustBrightneNEON(Colour colour, uint8_t brightness)
++{
++	if (brightness == Blitter_32bppBase::DEFAULT_BRIGHTNESS) return colour;
++	return ReallyAdjustBrightness(colour, brightness);
++}
++
++/**
++ * Adjust the brightness of two pixels at once. mvX2 holds the two pixels' map
++ * values (m, v, m, v); v is the brightness. (AdjustBrightnessOfTwoPixels in
++ * 32bpp_sse_func.hpp, SSSE3 version.)
++ */
++static inline uint8x8_t AdjustBrightnessOfTwoPixels(uint8x8_t from, uint32_t mvX2)
++{
++	const uint16_t v0 = (mvX2 >> 8) & 0xFF;
++	const uint16_t v1 = (mvX2 >> 24) & 0xFF;
++	const uint16_t bri[8] = { v0, v0, v0, Blitter_32bppBase::DEFAULT_BRIGHTNESS, v1, v1, v1, Blitter_32bppBase::DEFAULT_BRIGHTNESS };
++	static const uint16_t div_cleaner[8] = { 0x1FF, 0x1FF, 0x1FF, 0xFF, 0x1FF, 0x1FF, 0x1FF, 0xFF };
++	static const uint16_t ob_value[8] = { 0xFF, 0xFF, 0xFF, 0, 0xFF, 0xFF, 0xFF, 0 };
++
++	uint16x8_t colAB = vmovl_u8(from);
++	colAB = vmulq_u16(colAB, vld1q_u16(bri));
++	uint16x8_t colAB_ob = vshrq_n_u16(colAB, 8 + 7);
++	colAB = vshrq_n_u16(colAB, 7);
++
++	/* Sum overbright.
++	 * Maximum for each rgb is 508 => 9 bits. The highest bit tells if there is overbright.
++	 * -255 is changed in -256 so we just have to take the 8 lower bits into account.
++	 */
++	colAB = vandq_u16(colAB, vld1q_u16(div_cleaner));
++	colAB_ob = vandq_u16(colAB_ob, vandq_u16(RGBLanes(), vdupq_n_u16(1)));
++	colAB_ob = vmulq_u16(colAB_ob, vld1q_u16(ob_value));
++	colAB_ob = vandq_u16(colAB_ob, colAB);
++
++	/* Per pixel sum of the three colour lanes (alpha lanes are 0), halved. */
++	uint16x4_t sums = vpadd_u16(vget_low_u16(colAB_ob), vget_high_u16(colAB_ob));
++	sums = vpadd_u16(sums, sums);
++	sums = vshr_n_u16(sums, 1); // Reduce overbright strength.
++	const uint16x8_t obAB = vandq_u16(vcombine_u16(vdup_lane_u16(sums, 0), vdup_lane_u16(sums, 1)), RGBLanes());
++
++	uint16x8_t retAB = vqsubq_u16(vld1q_u16(ob_value), colAB); //    (255 - rgb)
++	retAB = vmulq_u16(retAB, obAB);                            // ob*(255 - rgb)
++	retAB = vshrq_n_u16(retAB, 8);                             // ob*(255 - rgb)/256
++	retAB = vaddq_u16(retAB, colAB);                           // ob*(255 - rgb)/256 + rgb
++
++	return vqmovn_u16(retAB);
++}
++
++Sprite *Blitter_32bppNEON::Encode(const SpriteLoader::SpriteCollection &sprite, AllocatorProc *allocator)
++{
++	/* The same encoding as Blitter_32bppSSE_Base::Encode() in 32bpp_sse2.cpp,
++	 * except that each zoom level's data is padded to a multiple of 4 bytes.
++	 * First uint32_t of a line = the number of transparent pixels from the left.
++	 * Second uint32_t of a line = the number of transparent pixels from the right.
++	 * Then all RGBA then all MV.
++	 */
++	ZoomLevel zoom_min = ZOOM_LVL_NORMAL;
++	ZoomLevel zoom_max = ZOOM_LVL_NORMAL;
++	if (sprite[ZOOM_LVL_NORMAL].type != SpriteType::Font) {
++		zoom_min = _settings_client.gui.zoom_min;
++		zoom_max = _settings_client.gui.zoom_max;
++		if (zoom_max == zoom_min) zoom_max = ZOOM_LVL_MAX;
++	}
++
++	/* Calculate sizes and allocate. */
++	SpriteData sd;
++	memset(&sd, 0, sizeof(sd));
++	uint all_sprites_size = 0;
++	for (ZoomLevel z = zoom_min; z <= zoom_max; z++) {
++		const SpriteLoader::Sprite *src_sprite = &sprite[z];
++		sd.infos[z].sprite_width = src_sprite->width;
++		sd.infos[z].sprite_offset = all_sprites_size;
++		sd.infos[z].sprite_line_size = sizeof(Colour) * src_sprite->width + sizeof(uint32_t) * META_LENGTH;
++
++		const uint rgba_size = sd.infos[z].sprite_line_size * src_sprite->height;
++		sd.infos[z].mv_offset = all_sprites_size + rgba_size;
++
++		/* Unlike the SSE encoder, keep every zoom level's pixels word aligned: ARM
++		 * needs that for LDRD/LDM and NEON word loads (x86 doesn't care). */
++		const uint mv_size = Align(sizeof(MapValue) * src_sprite->width * src_sprite->height, 4);
++		all_sprites_size += rgba_size + mv_size;
++	}
++
++	Sprite *dst_sprite = (Sprite *) allocator(sizeof(Sprite) + sizeof(SpriteData) + all_sprites_size);
++	dst_sprite->height = sprite[ZOOM_LVL_NORMAL].height;
++	dst_sprite->width  = sprite[ZOOM_LVL_NORMAL].width;
++	dst_sprite->x_offs = sprite[ZOOM_LVL_NORMAL].x_offs;
++	dst_sprite->y_offs = sprite[ZOOM_LVL_NORMAL].y_offs;
++	memcpy(dst_sprite->data, &sd, sizeof(SpriteData));
++
++	/* Copy colours and determine flags. */
++	bool has_remap = false;
++	bool has_anim = false;
++	bool has_translucency = false;
++	for (ZoomLevel z = zoom_min; z <= zoom_max; z++) {
++		const SpriteLoader::Sprite *src_sprite = &sprite[z];
++		const SpriteLoader::CommonPixel *src = (const SpriteLoader::CommonPixel *) src_sprite->data;
++		Colour *dst_rgba_line = (Colour *) &dst_sprite->data[sizeof(SpriteData) + sd.infos[z].sprite_offset];
++		MapValue *dst_mv = (MapValue *) &dst_sprite->data[sizeof(SpriteData) + sd.infos[z].mv_offset];
++		for (uint y = src_sprite->height; y != 0; y--) {
++			Colour *dst_rgba = dst_rgba_line + META_LENGTH;
++			for (uint x = src_sprite->width; x != 0; x--) {
++				if (src->a != 0) {
++					dst_rgba->a = src->a;
++					if (src->a != 0 && src->a != 255) has_translucency = true;
++					dst_mv->m = src->m;
++					if (src->m != 0) {
++						/* Do some accounting for flags. */
++						has_remap = true;
++						if (src->m >= PALETTE_ANIM_START) has_anim = true;
++
++						/* Get brightest value (or default brightness if it's a black pixel). */
++						const uint8_t rgb_max = std::max({src->r, src->g, src->b});
++						dst_mv->v = (rgb_max == 0) ? Blitter_32bppBase::DEFAULT_BRIGHTNESS : rgb_max;
++
++						/* Pre-convert the mapping channel to a RGB value. */
++						const Colour colour = AdjustBrightneNEON(Blitter_32bppBase::LookupColourInPalette(src->m), dst_mv->v);
++						dst_rgba->r = colour.r;
++						dst_rgba->g = colour.g;
++						dst_rgba->b = colour.b;
++					} else {
++						dst_rgba->r = src->r;
++						dst_rgba->g = src->g;
++						dst_rgba->b = src->b;
++						dst_mv->v = Blitter_32bppBase::DEFAULT_BRIGHTNESS;
++					}
++				} else {
++					dst_rgba->data = 0;
++					*(uint16_t*) dst_mv = 0;
++				}
++				dst_rgba++;
++				dst_mv++;
++				src++;
++			}
++
++			/* Count the number of transparent pixels from the left. */
++			dst_rgba = dst_rgba_line + META_LENGTH;
++			uint32_t nb_pix_transp = 0;
++			for (uint x = src_sprite->width; x != 0; x--) {
++				if (dst_rgba->a == 0) nb_pix_transp++;
++				else break;
++				dst_rgba++;
++			}
++			(*dst_rgba_line).data = nb_pix_transp;
++
++			Colour *nb_right = dst_rgba_line + 1;
++			dst_rgba_line = (Colour*) ((byte*) dst_rgba_line + sd.infos[z].sprite_line_size);
++
++			/* Count the number of transparent pixels from the right. */
++			dst_rgba = dst_rgba_line - 1;
++			nb_pix_transp = 0;
++			for (uint x = src_sprite->width; x != 0; x--) {
++				if (dst_rgba->a == 0) nb_pix_transp++;
++				else break;
++				dst_rgba--;
++			}
++			(*nb_right).data = nb_pix_transp;
++		}
++	}
++
++	/* Store sprite flags. */
++	sd.flags = SF_NONE;
++	if (has_translucency) sd.flags |= SF_TRANSLUCENT;
++	if (!has_remap) sd.flags |= SF_NO_REMAP;
++	if (!has_anim) sd.flags |= SF_NO_ANIM;
++	memcpy(dst_sprite->data, &sd, sizeof(SpriteData));
++
++	return dst_sprite;
++}
++
++/**
++ * Draws a sprite to a (screen) buffer. It is templated to allow faster operation.
++ *
++ * @tparam mode blitter mode
++ * @param bp further blitting parameters
++ * @param zoom zoom level at which we are drawing
++ */
++template <BlitterMode mode, Blitter_32bppNEON::ReadMode read_mode, Blitter_32bppNEON::BlockType bt_last, bool translucent>
++inline void Blitter_32bppNEON::Draw(const Blitter::BlitterParams *bp, ZoomLevel zoom)
++{
++	const byte * const remap = bp->remap;
++	Colour *dst_line = (Colour *) bp->dst + bp->top * bp->pitch + bp->left;
++	int effective_width = bp->width;
++
++	/* Find where to start reading in the source sprite. */
++	const SpriteData * const sd = (const SpriteData *) bp->sprite;
++	const SpriteInfo * const si = &sd->infos[zoom];
++	const MapValue *src_mv_line = (const MapValue *) &sd->data[si->mv_offset] + bp->skip_top * si->sprite_width;
++	const Colour *src_rgba_line = (const Colour *) ((const byte *) &sd->data[si->sprite_offset] + bp->skip_top * si->sprite_line_size);
++
++	if (read_mode != RM_WITH_MARGIN) {
++		src_rgba_line += bp->skip_left;
++		src_mv_line += bp->skip_left;
++	}
++	const MapValue *src_mv = src_mv_line;
++
++	for (int y = bp->height; y != 0; y--) {
++		Colour *dst = dst_line;
++		const Colour *src = src_rgba_line + META_LENGTH;
++		if (mode == BM_COLOUR_REMAP || mode == BM_CRASH_REMAP) src_mv = src_mv_line;
++
++		if (read_mode == RM_WITH_MARGIN) {
++			assert(bt_last == BT_NONE); // or you must ensure block type is preserved
++			src += src_rgba_line[0].data;
++			dst += src_rgba_line[0].data;
++			if (mode == BM_COLOUR_REMAP || mode == BM_CRASH_REMAP) src_mv += src_rgba_line[0].data;
++			const int width_diff = si->sprite_width - bp->width;
++			effective_width = bp->width - (int) src_rgba_line[0].data;
++			const int delta_diff = (int) src_rgba_line[1].data - width_diff;
++			const int new_width = effective_width - delta_diff;
++			effective_width = delta_diff > 0 ? new_width : effective_width;
++			if (effective_width <= 0) goto next_line;
++		}
++
++		switch (mode) {
++			default:
++				if (!translucent) {
++					/* Every pixel is either transparent or opaque: copy the opaque
++					 * ones, four at a time. */
++					uint x = (uint) effective_width;
++					const uint32x4_t alpha_bits = vdupq_n_u32(0xFF000000);
++					for (; x >= 4; x -= 4) {
++						const uint32x4_t s = vld1q_u32(reinterpret_cast<const uint32_t *>(src));
++						const uint32x4_t d = vld1q_u32(reinterpret_cast<const uint32_t *>(dst));
++						vst1q_u32(reinterpret_cast<uint32_t *>(dst), vbslq_u32(vtstq_u32(s, alpha_bits), s, d));
++						src += 4;
++						dst += 4;
++					}
++					for (; x > 0; x--) {
++						if (src->a) *dst = *src;
++						src++;
++						dst++;
++					}
++					break;
++				}
++
++				for (uint x = (uint) effective_width / 2; x > 0; x--) {
++					vst1_u8(reinterpret_cast<uint8_t *>(dst), AlphaBlendTwoPixels(LoadTwoPixels(src), LoadTwoPixels(dst)));
++					src += 2;
++					dst += 2;
++				}
++
++				if ((bt_last == BT_NONE && effective_width & 1) || bt_last == BT_ODD) {
++					dst->data = FirstPixel(AlphaBlendTwoPixels(LoadOnePixel(src->data), LoadOnePixel(dst->data)));
++				}
++				break;
++
++			case BM_COLOUR_REMAP:
++				for (uint x = (uint) effective_width / 2; x > 0; x--) {
++					uint8x8_t srcABCD = LoadTwoPixels(src);
++					const uint8x8_t dstABCD = LoadTwoPixels(dst);
++					/* The map values are only 2-byte aligned, so build the word from bytes. */
++					const uint32_t mvX2 = src_mv[0].m | (uint32_t) src_mv[0].v << 8 | (uint32_t) src_mv[1].m << 16 | (uint32_t) src_mv[1].v << 24;
++
++					/* Remap colours. */
++					if (mvX2 & 0x00FF00FF) {
++						/* Pixels with a remap: the remap colour (or transparent if the remap
++						 * gives colour 0) with the source alpha. */
++						uint32_t pixels[2];
++						for (int i = 0; i < 2; i++) {
++							const Colour srcm = src[i];
++							const uint m = (byte) (mvX2 >> (16 * i));
++							const uint r = remap[m];
++							const Colour cmap = (this->LookupColourInPalette(r).data & 0x00FFFFFF) | (srcm.data & 0xFF000000);
++							Colour c = r == 0 ? Colour(0) : cmap;
++							c = m != 0 ? c : srcm;
++							pixels[i] = c.data;
++						}
++						srcABCD = vreinterpret_u8_u32(vld1_u32(pixels));
++
++						if ((mvX2 & 0xFF00FF00) != 0x80008000) srcABCD = AdjustBrightnessOfTwoPixels(srcABCD, mvX2);
++					}
++
++					/* Blend colours. */
++					vst1_u8(reinterpret_cast<uint8_t *>(dst), AlphaBlendTwoPixels(srcABCD, dstABCD));
++					dst += 2;
++					src += 2;
++					src_mv += 2;
++				}
++
++				if ((bt_last == BT_NONE && effective_width & 1) || bt_last == BT_ODD) {
++					/* In case the m-channel is zero, do not remap this pixel in any way. */
++					uint8x8_t srcABCD;
++					if (src_mv->m) {
++						const uint r = remap[src_mv->m];
++						if (r != 0) {
++							Colour remapped_colour = AdjustBrightneNEON(this->LookupColourInPalette(r), src_mv->v);
++							if (src->a == 255) {
++								*dst = remapped_colour;
++							} else {
++								remapped_colour.a = src->a;
++								srcABCD = LoadOnePixel(remapped_colour.data);
++								goto bmcr_alpha_blend_single;
++							}
++						}
++					} else {
++						srcABCD = LoadOnePixel(src->data);
++						if (src->a < 255) {
++bmcr_alpha_blend_single:
++							srcABCD = AlphaBlendTwoPixels(srcABCD, LoadOnePixel(dst->data));
++						}
++						dst->data = FirstPixel(srcABCD);
++					}
++				}
++				break;
++
++			case BM_TRANSPARENT:
++				/* Make the current colour a bit more black, so it looks like this image is transparent. */
++				for (uint x = (uint) bp->width / 2; x > 0; x--) {
++					vst1_u8(reinterpret_cast<uint8_t *>(dst), DarkenTwoPixels(LoadTwoPixels(src), LoadTwoPixels(dst)));
++					src += 2;
++					dst += 2;
++				}
++
++				if ((bt_last == BT_NONE && bp->width & 1) || bt_last == BT_ODD) {
++					dst->data = FirstPixel(DarkenTwoPixels(LoadOnePixel(src->data), LoadOnePixel(dst->data)));
++				}
++				break;
++
++			case BM_TRANSPARENT_REMAP:
++				/* Apply custom transparency remap. */
++				for (uint x = (uint) bp->width; x > 0; x--) {
++					if (src->a != 0) {
++						*dst = this->LookupColourInPalette(remap[GetNearestColourIndex(*dst)]);
++					}
++					src_mv++;
++					dst++;
++					src++;
++				}
++				break;
++
++			case BM_CRASH_REMAP:
++				for (uint x = (uint) bp->width; x > 0; x--) {
++					if (src_mv->m == 0) {
++						if (src->a != 0) {
++							uint8_t g = MakeDark(src->r, src->g, src->b);
++							*dst = ComposeColourRGBA(g, g, g, src->a, *dst);
++						}
++					} else {
++						uint r = remap[src_mv->m];
++						if (r != 0) *dst = ComposeColourPANoCheck(this->AdjustBrightness(this->LookupColourInPalette(r), src_mv->v), src->a, *dst);
++					}
++					src_mv++;
++					dst++;
++					src++;
++				}
++				break;
++
++			case BM_BLACK_REMAP:
++				for (uint x = (uint) bp->width; x > 0; x--) {
++					if (src->a != 0) {
++						*dst = Colour(0, 0, 0);
++					}
++					src_mv++;
++					dst++;
++					src++;
++				}
++				break;
++		}
++
++next_line:
++		if (mode == BM_COLOUR_REMAP || mode == BM_CRASH_REMAP) src_mv_line += si->sprite_width;
++		src_rgba_line = (const Colour*) ((const byte*) src_rgba_line + si->sprite_line_size);
++		dst_line += bp->pitch;
++	}
++}
++
++/**
++ * Draws a sprite to a (screen) buffer. Calls adequate templated function.
++ *
++ * @param bp further blitting parameters
++ * @param mode blitter mode
++ * @param zoom zoom level at which we are drawing
++ */
++void Blitter_32bppNEON::Draw(Blitter::BlitterParams *bp, BlitterMode mode, ZoomLevel zoom)
++{
++	switch (mode) {
++		default: {
++			if (bp->skip_left != 0 || bp->width <= MARGIN_NORMAL_THRESHOLD) {
++bm_normal:
++				const BlockType bt_last = (BlockType) (bp->width & 1);
++				switch (bt_last) {
++					default:     Draw<BM_NORMAL, RM_WITH_SKIP, BT_EVEN, true>(bp, zoom); return;
++					case BT_ODD: Draw<BM_NORMAL, RM_WITH_SKIP, BT_ODD, true>(bp, zoom); return;
++				}
++			} else {
++				if (((const SpriteData *) bp->sprite)->flags & SF_TRANSLUCENT) {
++					Draw<BM_NORMAL, RM_WITH_MARGIN, BT_NONE, true>(bp, zoom);
++				} else {
++					Draw<BM_NORMAL, RM_WITH_MARGIN, BT_NONE, false>(bp, zoom);
++				}
++				return;
++			}
++			break;
++		}
++		case BM_COLOUR_REMAP:
++			if (((const SpriteData *) bp->sprite)->flags & SF_NO_REMAP) goto bm_normal;
++			if (bp->skip_left != 0 || bp->width <= MARGIN_REMAP_THRESHOLD) {
++				Draw<BM_COLOUR_REMAP, RM_WITH_SKIP, BT_NONE, true>(bp, zoom); return;
++			} else {
++				Draw<BM_COLOUR_REMAP, RM_WITH_MARGIN, BT_NONE, true>(bp, zoom); return;
++			}
++		case BM_TRANSPARENT:  Draw<BM_TRANSPARENT, RM_NONE, BT_NONE, true>(bp, zoom); return;
++		case BM_TRANSPARENT_REMAP: Draw<BM_TRANSPARENT_REMAP, RM_NONE, BT_NONE, true>(bp, zoom); return;
++		case BM_CRASH_REMAP:  Draw<BM_CRASH_REMAP, RM_NONE, BT_NONE, true>(bp, zoom); return;
++		case BM_BLACK_REMAP:  Draw<BM_BLACK_REMAP, RM_NONE, BT_NONE, true>(bp, zoom); return;
++	}
++}
++
++#endif /* __ARM_NEON */
+diff --git a/src/blitter/32bpp_neon.hpp b/src/blitter/32bpp_neon.hpp
+new file mode 100644
+index 0000000..942e72a
+--- /dev/null
++++ b/src/blitter/32bpp_neon.hpp
+@@ -0,0 +1,86 @@
++/*
++ * This file is part of OpenTTD.
++ * OpenTTD is free software; you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, version 2.
++ * OpenTTD is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
++ * See the GNU General Public License for more details. You should have received a copy of the GNU General Public License along with OpenTTD. If not, see <http://www.gnu.org/licenses/>.
++ */
++
++/** @file 32bpp_neon.hpp ARM NEON 32 bpp blitter: a port of the SSE (SSSE3/SSE4) blitter. */
++
++#ifndef BLITTER_32BPP_NEON_HPP
++#define BLITTER_32BPP_NEON_HPP
++
++#if defined(__ARM_NEON)
++
++#include "32bpp_simple.hpp"
++
++/**
++ * The NEON 32 bpp blitter (without palette animation).
++ *
++ * It uses the same sprite encoding as the SSE blitters (see 32bpp_sse2.cpp) and
++ * does the same arithmetic, so it draws exactly the same pixels as
++ * 32bpp-sse4 does on x86, two pixels per 64-bit NEON register.
++ */
++class Blitter_32bppNEON : public Blitter_32bppSimple {
++public:
++	struct MapValue {
++		uint8_t m;
++		uint8_t v;
++	};
++	static_assert(sizeof(MapValue) == 2);
++
++	/** Helper for creating specialised functions for specific optimisations. */
++	enum ReadMode {
++		RM_WITH_SKIP,   ///< Use normal code for skipping empty pixels.
++		RM_WITH_MARGIN, ///< Use cached number of empty pixels at begin and end of line to reduce work.
++		RM_NONE,        ///< No specialisation.
++	};
++
++	/** Helper for creating specialised functions for the case where the sprite width is odd or even. */
++	enum BlockType {
++		BT_EVEN, ///< An even number of pixels in the width; no need for a special case for the last pixel.
++		BT_ODD,  ///< An odd number of pixels in the width; special case for the last pixel.
++		BT_NONE, ///< No specialisation for either case.
++	};
++
++	/** Properties of a sprite, used to choose faster code. */
++	enum SpriteFlags {
++		SF_NONE        = 0,
++		SF_TRANSLUCENT = 1 << 1, ///< The sprite has at least 1 translucent pixel.
++		SF_NO_REMAP    = 1 << 2, ///< The sprite has no remappable colour pixel.
++		SF_NO_ANIM     = 1 << 3, ///< The sprite has no palette animated pixel.
++	};
++
++	/** Data stored about a (single) sprite. */
++	struct SpriteInfo {
++		uint32_t sprite_offset;    ///< The offset to the sprite data.
++		uint32_t mv_offset;        ///< The offset to the map value data.
++		uint16_t sprite_line_size; ///< The size of a single line (pitch).
++		uint16_t sprite_width;     ///< The width of the sprite.
++	};
++	struct SpriteData {
++		SpriteFlags flags;
++		SpriteInfo infos[ZOOM_LVL_END];
++		byte data[]; ///< Data, all zoomlevels.
++	};
++
++	void Draw(Blitter::BlitterParams *bp, BlitterMode mode, ZoomLevel zoom) override;
++	template <BlitterMode mode, ReadMode read_mode, BlockType bt_last, bool translucent>
++	void Draw(const Blitter::BlitterParams *bp, ZoomLevel zoom);
++
++	Sprite *Encode(const SpriteLoader::SpriteCollection &sprite, AllocatorProc *allocator) override;
++
++	const char *GetName() override { return "32bpp-neon"; }
++};
++
++DECLARE_ENUM_AS_BIT_SET(Blitter_32bppNEON::SpriteFlags);
++
++/** Factory for the NEON 32 bpp blitter (without palette animation). */
++class FBlitter_32bppNEON : public BlitterFactory {
++public:
++	FBlitter_32bppNEON() : BlitterFactory("32bpp-neon", "32bpp NEON Blitter (no palette animation)") {}
++	Blitter *CreateInstance() override { return new Blitter_32bppNEON(); }
++};
++
++#endif /* __ARM_NEON */
++#endif /* BLITTER_32BPP_NEON_HPP */
+diff --git a/src/blitter/CMakeLists.txt b/src/blitter/CMakeLists.txt
+index 50faefb..7645cc3 100644
+--- a/src/blitter/CMakeLists.txt
++++ b/src/blitter/CMakeLists.txt
+@@ -32,6 +32,14 @@ add_files(
+     CONDITION NOT OPTION_DEDICATED AND SSE_FOUND
+ )
+ 
++# NEON port of the SSE blitter (32bpp-neon). The files compile to nothing
++# unless the compiler targets NEON (__ARM_NEON), e.g. -mfpu=neon-vfpv4.
++add_files(
++    32bpp_neon.cpp
++    32bpp_neon.hpp
++    CONDITION NOT OPTION_DEDICATED
++)
++
+ add_files(
+     40bpp_anim.cpp
+     40bpp_anim.hpp

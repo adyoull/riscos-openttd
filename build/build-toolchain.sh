@@ -3,10 +3,11 @@
 # arm-riscos-gnueabihf) with this port's UnixLib changes.
 # See BUILDING.md for the host requirements.
 . "$(dirname "$0")/env.sh"
-cd "$GCCSDK_SRC"
-git apply "$REPO_DIR/patches/gccsdk/gccsdk-toolchain.diff"
+use_ref "$GCCSDK_SRC" "$GCCSDK_REF"
+apply_once "$GCCSDK_SRC" "$REPO_DIR/patches/gccsdk/gccsdk-toolchain.diff"
 # UnixLib changes: a copy of riscos-unixlib's patches/unixlib-riscos.diff
-git apply "$REPO_DIR/patches/unixlib/unixlib-riscos.diff"
+apply_once "$GCCSDK_SRC" "$REPO_DIR/patches/unixlib/unixlib-riscos.diff"
+cd "$GCCSDK_SRC"
 
 # 1. The GCC 4.7.4 base toolchain.
 ( cd gcc4 && ./build-world )

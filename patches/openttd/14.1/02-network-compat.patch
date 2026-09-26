@@ -1,0 +1,57 @@
+Networking without getifaddrs() and AI_ADDRCONFIG.
+
+UnixLib has no ifaddrs.h or getifaddrs(), so LAN game discovery sends to
+the limited broadcast address (255.255.255.255) instead of each
+interface's broadcast address. AI_ADDRCONFIG is defined as 0 when the C
+library doesn't have it.
+
+For OpenTTD 14.1. See docs/PORTING-NOTES.md in riscos-openttd.
+
+diff --git a/src/network/core/host.cpp b/src/network/core/host.cpp
+index 7504f69..886563e 100644
+--- a/src/network/core/host.cpp
++++ b/src/network/core/host.cpp
+@@ -59,6 +59,16 @@ static void NetworkFindBroadcastIPsInternal(NetworkAddressList *broadcast) // Wi
+ 	closesocket(sock);
+ }
+ 
++#elif defined(__riscos__)
++/* RISC OS (UnixLib) has no getifaddrs(); fall back to the limited broadcast address. */
++static void NetworkFindBroadcastIPsInternal(NetworkAddressList *broadcast)
++{
++	sockaddr_in sin{};
++	sin.sin_family = AF_INET;
++	sin.sin_addr.s_addr = htonl(INADDR_BROADCAST);
++	broadcast->emplace_back((sockaddr *)&sin, sizeof(sin));
++}
++
+ #else /* not WIN32 */
+ static void NetworkFindBroadcastIPsInternal(NetworkAddressList *broadcast)
+ {
+diff --git a/src/network/core/os_abstraction.h b/src/network/core/os_abstraction.h
+index cc35c01..661370f 100644
+--- a/src/network/core/os_abstraction.h
++++ b/src/network/core/os_abstraction.h
+@@ -78,7 +78,9 @@ typedef unsigned long in_addr_t;
+ #	include <netinet/tcp.h>
+ #	include <arpa/inet.h>
+ #	include <net/if.h>
+-#	include <ifaddrs.h>
++#	if !defined(__riscos__)
++#		include <ifaddrs.h>
++#	endif
+ #	if !defined(INADDR_NONE)
+ #		define INADDR_NONE 0xffffffff
+ #	endif
+@@ -91,6 +93,11 @@ typedef unsigned long in_addr_t;
+ #	include <sys/time.h>
+ #	include <netdb.h>
+ 
++#	if !defined(AI_ADDRCONFIG)
++/* RISC OS (UnixLib) lacks AI_ADDRCONFIG. */
++#		define AI_ADDRCONFIG 0
++#	endif
++
+ #   if defined(__EMSCRIPTEN__)
+ /* Emscripten doesn't support AI_ADDRCONFIG and errors out on it. */
+ #		undef AI_ADDRCONFIG

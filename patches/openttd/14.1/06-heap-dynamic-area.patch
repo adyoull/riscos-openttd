@@ -1,0 +1,33 @@
+C heap in a named dynamic area.
+
+The C heap goes in a dynamic area called "OpenTTD Heap" (up to 512MB).
+Otherwise UnixLib takes the name from the command line, which under
+SOManager isn't the program name, so no dynamic area was made and memory
+ran out.
+
+For OpenTTD 14.1. See docs/PORTING-NOTES.md in riscos-openttd.
+
+diff --git a/src/os/unix/unix_main.cpp b/src/os/unix/unix_main.cpp
+index 41ad22c..2b0351b 100644
+--- a/src/os/unix/unix_main.cpp
++++ b/src/os/unix/unix_main.cpp
+@@ -18,6 +18,19 @@
+ 
+ #include "../../safeguards.h"
+ 
++#if defined(__riscos__)
++/* Put the C heap in a dynamic area with a fixed name. UnixLib otherwise
++ * derives the "<name>$Heap" variable from the command line, which under
++ * SOManager is not the program name, so no dynamic area was created, the
++ * heap ran out in the WimpSlot and malloc fell back to ARMEABISupport
++ * mmap areas that are never given back. The area is removed on exit. */
++/* features.h declares these with C++ linkage, so define them via asm labels. */
++extern const char * const riscos_heap_da_name asm("__dynamic_da_name");
++const char * const riscos_heap_da_name = "OpenTTD Heap";
++extern int riscos_heap_da_max_size asm("__dynamic_da_max_size");
++int riscos_heap_da_max_size = 512 * 1024 * 1024;
++#endif
++
+ int CDECL main(int argc, char *argv[])
+ {
+ 	/* Make sure our arguments contain only valid UTF-8 characters. */

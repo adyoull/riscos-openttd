@@ -1,0 +1,33 @@
+C library differences.
+
+UnixLib has no strcasestr() (OpenTTD then defines its own), and
+fdatasync() isn't used when saving the settings file.
+
+For OpenTTD 14.1. See docs/PORTING-NOTES.md in riscos-openttd.
+
+diff --git a/src/ini.cpp b/src/ini.cpp
+index 95d7cb8..5b0a85a 100644
+--- a/src/ini.cpp
++++ b/src/ini.cpp
+@@ -80,7 +80,7 @@ bool IniFile::SaveToDisk(const std::string &filename)
+  * APIs to do so. We only need to flush the data as the metadata itself
+  * (modification date etc.) is not important to us; only the real data is.
+  */
+-#if defined(_POSIX_SYNCHRONIZED_IO) && _POSIX_SYNCHRONIZED_IO > 0
++#if defined(_POSIX_SYNCHRONIZED_IO) && _POSIX_SYNCHRONIZED_IO > 0 && !defined(__riscos__)
+ 	int f = open(file_new.c_str(), O_RDWR);
+ 	int ret = fdatasync(f);
+ 	close(f);
+diff --git a/src/string_func.h b/src/string_func.h
+index df487f1..0fad14e 100644
+--- a/src/string_func.h
++++ b/src/string_func.h
+@@ -256,7 +256,7 @@ inline bool IsWhitespace(char32_t c)
+ #endif
+ 
+ /* strcasestr is available for _GNU_SOURCE, BSD and some Apple */
+-#if defined(_GNU_SOURCE) || (defined(__BSD_VISIBLE) && __BSD_VISIBLE) || (defined(__APPLE__) && (!defined(_POSIX_C_SOURCE) || defined(_DARWIN_C_SOURCE))) || defined(_NETBSD_SOURCE)
++#if !defined(__riscos__) && (defined(_GNU_SOURCE) || (defined(__BSD_VISIBLE) && __BSD_VISIBLE) || (defined(__APPLE__) && (!defined(_POSIX_C_SOURCE) || defined(_DARWIN_C_SOURCE))) || defined(_NETBSD_SOURCE))
+ #	undef DEFINE_STRCASESTR
+ #else
+ #	define DEFINE_STRCASESTR

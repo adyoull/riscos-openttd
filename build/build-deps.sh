@@ -5,7 +5,7 @@
 SDLREC="$GCCSDK_SRC/autobuilder/libraries/sdl/libsdl2"
 cp "$REPO_DIR"/gccsdk-overlay/autobuilder/libraries/sdl/libsdl2/*.p "$SDLREC/"
 rm -f "$SDLREC/depends"   # khronos/oslib are not needed for the software driver
-( cd "$GCCSDK_SRC" && git apply "$REPO_DIR/patches/gccsdk/libsdl2-setvars.diff" )
+apply_once "$GCCSDK_SRC" "$REPO_DIR/patches/gccsdk/libsdl2-setvars.diff"
 
 cd "$AB_DIR"
 for p in zlib1g liblzma5 liblzo2-2 libpng16-16; do

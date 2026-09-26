@@ -1,0 +1,33 @@
+Tolerant command line.
+
+Logs the command line to stderr when it has an error (the help text would
+scroll it away) and ignores stray non-option arguments, e.g. leftovers from
+!Run, instead of refusing to start.
+
+For OpenTTD 14.1. See docs/PORTING-NOTES.md in riscos-openttd.
+
+diff --git a/src/openttd.cpp b/src/openttd.cpp
+index 5c2702f..34850aa 100644
+--- a/src/openttd.cpp
++++ b/src/openttd.cpp
+@@ -662,6 +662,20 @@ int openttd_main(int argc, char *argv[])
+ 		if (i == -2) break;
+ 	}
+ 
++#if defined(__riscos__)
++	/* On RISC OS, report what went wrong on the command line (the help text
++	 * scrolls it away), and ignore stray non-option arguments such as
++	 * leftovers from the !Run file instead of refusing to start. */
++	if (i == -2 || mgo.numleft > 0) {
++		fmt::print(stderr, "OpenTTD: command line was:");
++		for (int n = 0; n < argc; n++) fmt::print(stderr, " [{}]", argv[n]);
++		fmt::print(stderr, "\n");
++	}
++	if (i != -2 && mgo.numleft > 0) {
++		for (int n = 0; n < mgo.numleft; n++) fmt::print(stderr, "OpenTTD: ignoring argument [{}]\n", mgo.argv[n]);
++		mgo.numleft = 0;
++	}
++#endif
+ 	if (i == -2 || mgo.numleft > 0) {
+ 		/* Either the user typed '-h', they made an error, or they added unrecognized command line arguments.
+ 		 * In all cases, print the help, and exit.
