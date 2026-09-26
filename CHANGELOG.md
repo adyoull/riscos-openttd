@@ -6,7 +6,7 @@ SDL2 is listed in more detail here:
 - [OpenTTD changes](patches/openttd/CHANGELOG.md)
 - [SDL2 changes](gccsdk-overlay/autobuilder/libraries/sdl/libsdl2/CHANGELOG.md)
 
-## 14.1-riscos3 (not yet released)
+## 14.1-riscos3 (tag `14.1.3`)
 
 Changes since 14.1-riscos2.
 
@@ -17,11 +17,12 @@ Changes since 14.1-riscos2.
 - Music. The OpenMSX soundtrack is played through a General MIDI SoundFont
   with the new `midisynth` music driver. It comes in a third zip
   (`OpenTTD-14.1-riscos-Music.zip`: OpenMSX and the TimGM6mb SoundFont).
-  If `!MIDISynth` is installed, its SoundFont is used instead.
-  Built with midisynth 0.3.0, which uses about a fifth less processor
-  time than 0.1.0, stops synthesising when the music volume is 0, and can
-  use SF3 (compressed) SoundFonts as well as SF2. If the SoundFont can't
-  be loaded, the game starts without music instead of stopping.
+  If `!MIDISynth` is installed, its SoundFont is used instead. SF2 and
+  SF3 SoundFonts both work. Turning the music volume down to 0 stops the
+  synthesiser, so it costs no processor time. If the SoundFont can't be
+  loaded, the game starts without music instead of stopping.
+- Built with [riscos-midisynth](https://github.com/adyoull/riscos-midisynth)
+  0.3.1.
 
 ## 14.1-riscos2 (tag '14.1.2')
 
