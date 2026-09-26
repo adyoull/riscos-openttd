@@ -18,6 +18,8 @@ Changes since 14.1-riscos2.
   with the new `midisynth` music driver. It comes in a third zip
   (`OpenTTD-14.1-riscos-Music.zip`: OpenMSX and the TimGM6mb SoundFont).
   If `!MIDISynth` is installed, its SoundFont is used instead.
+  Built with midisynth 0.2.0, which uses about a fifth less processor
+  time than 0.1.0 and stops synthesising when the music volume is 0.
 
 ## 14.1-riscos2 (tag '14.1.2')
 
