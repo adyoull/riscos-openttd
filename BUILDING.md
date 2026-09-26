@@ -69,7 +69,14 @@ riscos-openttd/build/build-deps.sh
 
 This builds zlib, liblzma, liblzo2, libpng and SDL 2.26 with the autobuilder.
 
-For SDL, it copies the files in `gccsdk-overlay/` into the libsdl2 recipe and
+The SDL overlay in `gccsdk-overlay/` is a copy of riscos-mesa's
+`patches/sdl2` (see `SOURCE` there and `docs/PORTING-NOTES.md`); don't edit
+it here. It includes OpenGL code that is only built with
+`--enable-video-riscos-osmesa`, which OpenTTD doesn't use; the script stops
+if SDL was built with it.
+
+For SDL, it resets the libsdl2 recipe, copies the `.p` files in
+`gccsdk-overlay/` into it and
 applies `patches/gccsdk/libsdl2-setvars.diff`. The changes to the recipe:
 
 - regenerate `configure` every time;

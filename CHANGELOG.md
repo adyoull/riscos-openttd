@@ -10,13 +10,14 @@ SDL2 is listed in more detail here:
 
 - The memory report in `OpenTTDlog` is now off unless asked for: remove the
   `|` from the `Set OpenTTD$Debug` line in `!Run` (it passes `-d driver=1`).
+- SDL now comes from the same RISC OS overlay as the Mesa (OpenGL) port,
+  copied from riscos-mesa (`08057f9`) rather than kept separately. It adds
+  one thing OpenTTD didn't have: in a desktop window, SDL's own waits give
+  time to other tasks (`Wimp_PollIdle`). The OpenGL code in it isn't
+  built for OpenTTD.
 - Tidier code, with no other change in behaviour:
   - the OpenTTD changes are now one patch per change
     (`patches/openttd/14.1/`), and the build scripts can be run again;
-  - in SDL, a `RISCOS_IsWindowed()` helper; the scroll wheel and window
-    title state are kept with the rest of the driver's state; the window
-    scale can also be set with the `SDL_RISCOS_WINDOW_SCALE` hint
-    (`SDL$WindowScale` still works).
 
 ## 14.1-riscos4 (tag `14.1.4`)
 

@@ -37,7 +37,19 @@ applies on its own. `build/package.sh` joins them into one
 
 ## SDL 2.26 RISC OS driver (`gccsdk-overlay/…/libsdl2`)
 
-These are patches on top of SDL's existing RISC OS video driver, which was
+**The SDL overlay is a copy of riscos-mesa's `patches/sdl2`**, the master copy
+shared with the Mesa (OpenGL) port. `SOURCE` names the riscos-mesa commit and
+`README-overlay.md` is riscos-mesa's description of it. Don't edit the `.p`
+files here: changes are made in riscos-mesa and copied over with its
+`tools/sdl-overlay-export.sh`; `tools/sdl-overlay-check.sh` there says
+whether this copy still matches.
+
+The files include riscos-mesa's OpenGL (OSMesa) code, which is only compiled
+when SDL is configured with `--enable-video-riscos-osmesa`. OpenTTD's build
+doesn't use that option, and `build/build-deps.sh` stops if the SDL it built
+has OSMesa in it.
+
+They are patches on top of SDL's existing RISC OS video driver, which was
 full screen only.
 
 - **Windowed mode.** `Wimp_Initialise` (version 380), a Wimp window with a
@@ -60,10 +72,11 @@ full screen only.
   `SDL_MOUSEWHEEL` (the Pi doesn't send Wimp `Scroll_Request` events).
 - **One desktop window.** Only one SDL window at a time is a Wimp window
   (`wimp_sdl_window`); any other is created full screen, as the original
-  driver did. `RISCOS_IsWindowed()` says which mode the driver is in.
-- **Window scale.** The `SDL_RISCOS_WINDOW_SCALE` hint (or system variable)
-  sets the scale of a desktop window; `SDL$WindowScale` is read if it's not
-  set.
+  driver did.
+- **Sharing the processor.** In a desktop window, `SDL_Delay` waits in
+  `Wimp_PollIdle` so other tasks run, and `SDL_WaitEvent` blocks without
+  using the processor (from riscos-mesa). OpenTTD's own frame wait uses
+  C++ `sleep_for`, which UnixLib still busy-waits.
 - **Mouse.** Mouse position is relative to the window. The pointer is hidden
   only while it's over the window.
 - **Build.** `configure.ac.host.p` makes `arm-riscos-gnueabihf` pick the RISC

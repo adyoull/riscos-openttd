@@ -96,7 +96,7 @@ sources:
 |------|------|
 | `app/!OpenTTD` | The RISC OS application resources (`!Run`, `!Boot`, `!Help`, `!Sprites`) |
 | `patches/openttd` | The patch against OpenTTD tag `14.1` |
-| `gccsdk-overlay/…/libsdl2` | SDL 2.26 RISC OS video driver changes (GCCSDK autobuilder `.p` patches) |
+| `gccsdk-overlay/…/libsdl2` | SDL 2.26 RISC OS driver changes (GCCSDK autobuilder `.p` patches), a copy of riscos-mesa's `patches/sdl2` |
 | `patches/gccsdk` | Changes to the GCCSDK autobuilder recipes (GCC 10.2, SDL2) |
 | `patches/unixlib` | UnixLib fixes, copied from riscos-unixlib: wide characters, a high-resolution clock, precise `nanosleep`, no mmap, sound (`/dev/dsp` via SharedSoundBuffer, the exit fix, `/dev/midi`), `fsync`/`fdatasync`, joining threads at exit |
 

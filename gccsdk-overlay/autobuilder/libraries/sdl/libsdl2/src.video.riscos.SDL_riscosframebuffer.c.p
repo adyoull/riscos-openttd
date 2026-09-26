@@ -1,8 +1,20 @@
 diff --git src/video/riscos/SDL_riscosframebuffer.c src/video/riscos/SDL_riscosframebuffer.c
-index 5984199..c9cd558 100644
+index 5984199..dd2d735 100644
 --- src/video/riscos/SDL_riscosframebuffer.c
 +++ src/video/riscos/SDL_riscosframebuffer.c
-@@ -53,6 +53,26 @@ int RISCOS_CreateWindowFramebuffer(_THIS, SDL_Window * window, Uint32 * format,
+@@ -40,6 +40,11 @@ int RISCOS_CreateWindowFramebuffer(_THIS, SDL_Window * window, Uint32 * format,
+     SDL_DisplayMode mode;
+     int size;
+ 
++    /* 2026: an OpenGL window's sprite belongs to the GL context. */
++    if (driverdata->gl_active) {
++        return SDL_SetError("Window uses OpenGL; it has no framebuffer surface");
++    }
++
+     /* Free the old framebuffer surface */
+     RISCOS_DestroyWindowFramebuffer(_this, window);
+ 
+@@ -53,6 +58,26 @@ int RISCOS_CreateWindowFramebuffer(_THIS, SDL_Window * window, Uint32 * format,
          sprite_mode = (1 | (90 << 1) | (90 << 14) | (6 << 27));
      }
  
@@ -29,7 +41,7 @@ index 5984199..c9cd558 100644
      /* Calculate pitch */
      *pitch = (((window->w * SDL_BYTESPERPIXEL(*format)) + 3) & ~3);
  
-@@ -88,32 +108,173 @@ int RISCOS_CreateWindowFramebuffer(_THIS, SDL_Window * window, Uint32 * format,
+@@ -88,32 +113,175 @@ int RISCOS_CreateWindowFramebuffer(_THIS, SDL_Window * window, Uint32 * format,
      return 0;
  }
  
@@ -195,7 +207,7 @@ index 5984199..c9cd558 100644
 +{
 +    SDL_WindowData *driverdata = (SDL_WindowData *) window->driverdata;
 +
-+    if (RISCOS_IsWindowed(((SDL_VideoData *) _this->driverdata)) &&
++    if (((SDL_VideoData *) _this->driverdata)->wimp_window != 0 &&
 +        ((SDL_VideoData *) _this->driverdata)->wimp_sdl_window == window) {
 +        return RISCOS_WimpUpdateFramebuffer(_this, window, rects, numrects);
 +    }
@@ -210,6 +222,8 @@ index 5984199..c9cd558 100644
  {
      SDL_WindowData *driverdata = (SDL_WindowData *) window->driverdata;
  
++    if (driverdata->gl_active)
++        return;             /* 2026: the GL sprite is freed by the GL code */
 +    driverdata->fb_direct = 0;
 +
      if (driverdata->fb_area) {

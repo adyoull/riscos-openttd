@@ -4,21 +4,21 @@ Changes made by the `.p` patches in this directory to SDL 2.26.0's RISC OS video
 driver (`src/video/riscos`), and to the GCCSDK autobuilder recipe, newest
 first.
 
-## 2026-09-27 (tidy-up, no change in behaviour)
+## 2026-09-26: the overlay is now a copy of riscos-mesa's
 
-- `SDL_riscosvideo.h`: `RISCOS_IsWindowed(vdata)` replaces the
-  `wimp_window != 0` / `== 0` tests that were spread over the driver.
-- The scroll wheel baseline (`wheel_x/y`, `wheel_valid`) and the title bar
-  text (`window_title`) are in `SDL_VideoData` with the rest of the
-  driver's state, instead of file-level variables. The app name and icon
-  stay per process (they belong to the program), and the icon bar menu
-  block stays static (the Wimp reads it while the menu is open); both now
-  say why.
-- The one-desktop-window limit is written down in `SDL_VideoData`.
-- The window scale is read with `SDL_GetHint(SDL_HINT_RISCOS_WINDOW_SCALE)`
-  ("SDL_RISCOS_WINDOW_SCALE"), so a program can set it with `SDL_SetHint`
-  or the user as a system variable. `SDL$WindowScale` is still read when
-  the hint isn't set.
+From here on the `.p` files are an unmodified copy of riscos-mesa's
+`patches/sdl2` (commit in `SOURCE`, description in `README-overlay.md`), and
+changes are recorded there. This file is the history of the OpenTTD copy
+up to that point.
+
+- Copied from riscos-mesa `08057f9`. riscos-mesa already had everything
+  below, and adds `SDL_Delay`/`SDL_WaitEvent` waiting with `Wimp_PollIdle`
+  in a desktop window and its OpenGL code, which OpenTTD doesn't compile.
+  The patches for `configure.ac` are now named `sdl2-configure.ac.*.p`.
+- The tidy-ups made here earlier the same day (`RISCOS_IsWindowed()`, wheel
+  and title state in `SDL_VideoData`, the `SDL_RISCOS_WINDOW_SCALE` hint)
+  aren't in riscos-mesa yet, so they were dropped from this copy and sent
+  to riscos-mesa as a request. They didn't change behaviour.
 
 ## 2026-09-26 (later)
 
