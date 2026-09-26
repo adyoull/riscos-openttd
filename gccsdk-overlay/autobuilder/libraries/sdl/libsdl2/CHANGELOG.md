@@ -4,6 +4,22 @@ Changes made by the `.p` patches in this directory to SDL 2.26.0's RISC OS video
 driver (`src/video/riscos`), and to the GCCSDK autobuilder recipe, newest
 first.
 
+## 2026-09-26 (later)
+
+### Short mouse clicks in a window were lost
+- In a desktop window the buttons are read with `Wimp_GetPointerInfo` once
+  per `SDL_PumpEvents`, i.e. once per frame. A click that was pressed and
+  released between two polls never produced `SDL_MOUSEBUTTONDOWN`/`UP`, so
+  clicks could be missed whenever a frame was slow.
+- `SDL_riscosevents.c`: the Wimp's `Mouse_Click` event (the window's work
+  area button type is already "click") is now remembered in
+  `pending_clicks` (`SDL_riscosvideo.h`). The next poll reports any
+  remembered button that it didn't already see down as a press, and the
+  poll after that sends the release. Full screen is unchanged: it uses
+  `OS_Mouse`, which is buffered.
+- Found in the Warzone 2100 port (software OpenGL, 100 ms+ frames); the
+  same change is in riscos-mesa's SDL overlay (commit `6d54711`).
+
 ## 2026-09-26
 
 ### Sound: a proper RISC OS audio driver

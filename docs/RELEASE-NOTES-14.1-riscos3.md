@@ -13,6 +13,8 @@ OpenTTD 14.1 for RISC OS, third release.
   StreamManager modules. It mixes with other programs' sound, and the game
   no longer ties up the processor while it waits to send more. Without
   those modules DigitalRenderer is used, as before.
+- **Mouse clicks.** Quick clicks in a desktop window are no longer lost
+  when the game is busy, for example on a big map or on fast-forward.
 
 **Downloads**
 

@@ -23,6 +23,9 @@ Changes since 14.1-riscos2.
   loaded, the game starts without music instead of stopping.
 - Built with [riscos-midisynth](https://github.com/adyoull/riscos-midisynth)
   0.3.1.
+- Quick mouse clicks in a desktop window are no longer lost when the game
+  is busy (for example on a big map or on fast-forward). Before, a click
+  that was pressed and released between two frames could be missed.
 
 ## 14.1-riscos2 (tag '14.1.2')
 
