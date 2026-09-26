@@ -1,5 +1,5 @@
 diff --git src/video/riscos/SDL_riscosevents.c src/video/riscos/SDL_riscosevents.c
-index fcca470..a34ea3c 100644
+index fcca470..9a60485 100644
 --- src/video/riscos/SDL_riscosevents.c
 +++ src/video/riscos/SDL_riscosevents.c
 @@ -27,6 +27,7 @@
@@ -84,7 +84,7 @@ index fcca470..a34ea3c 100644
      /* Check for key presses */
      while (key < 0xff) {
          key = _kernel_osbyte(121, key + 1, 0) & 0xff;
-@@ -111,36 +165,146 @@ static const Uint8 mouse_button_map[] = {
+@@ -111,36 +165,150 @@ static const Uint8 mouse_button_map[] = {
      SDL_BUTTON_X2 + 3
  };
  
@@ -121,6 +121,10 @@ index fcca470..a34ea3c 100644
 +        if (missed != 0) {
 +            buttons |= missed;
 +            inside = SDL_TRUE;
++            /* report the press where it happened (the pointer may have
++               moved on since); the next poll moves it back */
++            ptr[0] = driverdata->pending_click_x;
++            ptr[1] = driverdata->pending_click_y;
 +        }
 +    }
 +    /* Keep reporting while a button pressed inside the window is held (drags). */
@@ -238,7 +242,7 @@ index fcca470..a34ea3c 100644
  int
  RISCOS_InitEvents(_THIS)
  {
-@@ -165,10 +329,175 @@ RISCOS_InitEvents(_THIS)
+@@ -165,10 +333,177 @@ RISCOS_InitEvents(_THIS)
      return 0;
  }
  
@@ -303,6 +307,8 @@ index fcca470..a34ea3c 100644
 +                    can come and go between two polls, so remember it */
 +            if (block[3] == driverdata->wimp_window && driverdata->wimp_window != 0) {
 +                driverdata->pending_clicks |= block[2] & 7;
++                driverdata->pending_click_x = block[0];
++                driverdata->pending_click_y = block[1];
 +            } else if (block[3] == -2 && block[4] == driverdata->iconbar_icon) {
 +                if (block[2] & 2) {
 +                    RISCOS_IconbarMenu(block[0]);

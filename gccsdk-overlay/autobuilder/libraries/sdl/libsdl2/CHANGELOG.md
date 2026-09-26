@@ -17,8 +17,12 @@ first.
   remembered button that it didn't already see down as a press, and the
   poll after that sends the release. Full screen is unchanged: it uses
   `OS_Mouse`, which is buffered.
+- The made-up press is reported at the place the click happened
+  (`pending_click_x/y`, saved from the Mouse_Click block), not wherever
+  the pointer has moved to by the next poll; the poll after moves it back.
 - Found in the Warzone 2100 port (software OpenGL, 100 ms+ frames); the
-  same change is in riscos-mesa's SDL overlay (commit `6d54711`).
+  same change is in riscos-mesa's SDL overlay (commits `6d54711` and
+  `34a24c2`).
 
 ## 2026-09-26
 
