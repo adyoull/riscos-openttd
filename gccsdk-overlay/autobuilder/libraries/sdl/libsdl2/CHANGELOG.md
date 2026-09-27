@@ -11,6 +11,10 @@ From here on the `.p` files are an unmodified copy of riscos-mesa's
 changes are recorded there. This file is the history of the OpenTTD copy
 up to that point.
 
+- 2026-09-27: copied again from riscos-mesa `4f859d5` (overlay as of
+  `1d85a10`): the tidy-ups requested from here, i.e. `RISCOS_IsWindowed()`,
+  wheel and title state in `SDL_VideoData`, the one-window note and the
+  `SDL_RISCOS_WINDOW_SCALE` hint (`SDL$WindowScale` still read).
 - 2026-09-27: copied again from riscos-mesa `2c29a8d` (desktop quit and
   PreQuit, close icon as a window event, show/hide, named Wimp blocks in
   the new `SDL_riscoswimp.h`); see riscos-mesa's history for details.

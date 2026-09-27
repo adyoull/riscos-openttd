@@ -21,6 +21,10 @@ SDL2 is listed in more detail here:
   If the desktop insists on quitting, the game does quit. The close icon
   sends SDL's normal "window closed" event (the game still quits). From
   riscos-mesa `2c29a8d`.
+- The desktop window scale can also be set with the system variable
+  `SDL_RISCOS_WINDOW_SCALE` (or the SDL hint of that name); `SDL$WindowScale`
+  in `!Run` still works. From riscos-mesa `1d85a10`, with other tidy-ups
+  that don't change behaviour.
 - Tidier code, with no other change in behaviour:
   - the OpenTTD changes are now one patch per change
     (`patches/openttd/14.1/`), and the build scripts can be run again;
