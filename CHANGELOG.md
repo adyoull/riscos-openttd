@@ -15,6 +15,12 @@ SDL2 is listed in more detail here:
   one thing OpenTTD didn't have: in a desktop window, SDL's own waits give
   time to other tasks (`Wimp_PollIdle`). The OpenGL code in it isn't
   built for OpenTTD.
+- Desktop shutdown while the game runs in a window: the game now gets the
+  chance to ask "quit?" first. Say yes and the shutdown carries on; say no
+  and it's cancelled. Quitting it from the Task Manager asks the same way.
+  If the desktop insists on quitting, the game does quit. The close icon
+  sends SDL's normal "window closed" event (the game still quits). From
+  riscos-mesa `2c29a8d`.
 - Tidier code, with no other change in behaviour:
   - the OpenTTD changes are now one patch per change
     (`patches/openttd/14.1/`), and the build scripts can be run again;

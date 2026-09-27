@@ -11,6 +11,9 @@ From here on the `.p` files are an unmodified copy of riscos-mesa's
 changes are recorded there. This file is the history of the OpenTTD copy
 up to that point.
 
+- 2026-09-27: copied again from riscos-mesa `2c29a8d` (desktop quit and
+  PreQuit, close icon as a window event, show/hide, named Wimp blocks in
+  the new `SDL_riscoswimp.h`); see riscos-mesa's history for details.
 - Copied from riscos-mesa `08057f9`. riscos-mesa already had everything
   below, and adds `SDL_Delay`/`SDL_WaitEvent` waiting with `Wimp_PollIdle`
   in a desktop window and its OpenGL code, which OpenTTD doesn't compile.

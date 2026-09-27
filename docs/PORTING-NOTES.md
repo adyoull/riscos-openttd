@@ -73,6 +73,13 @@ full screen only.
 - **One desktop window.** Only one SDL window at a time is a Wimp window
   (`wimp_sdl_window`); any other is created full screen, as the original
   driver did.
+- **Desktop quit.** The task asks for Message_PreQuit. On PreQuit it objects
+  and posts `SDL_QUIT`, and restarts a desktop shutdown (Ctrl-Shift-F12 via
+  `Wimp_ProcessKey`) if the program quits within 30 s. On Message_Quit it
+  posts `SDL_APP_TERMINATING` and `SDL_QUIT`, then exits if the program
+  carries on. The close icon sends `SDL_WINDOWEVENT_CLOSE`. `SDL_ShowWindow`
+  and `SDL_HideWindow` open and close the desktop window. Wimp blocks are
+  named structures (`SDL_riscoswimp.h`).
 - **Sharing the processor.** In a desktop window, `SDL_Delay` waits in
   `Wimp_PollIdle` so other tasks run, and `SDL_WaitEvent` blocks without
   using the processor (from riscos-mesa). OpenTTD's own frame wait uses
