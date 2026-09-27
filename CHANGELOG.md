@@ -6,35 +6,39 @@ SDL2 is listed in more detail here:
 - [OpenTTD changes](patches/openttd/CHANGELOG.md)
 - [SDL2 changes](gccsdk-overlay/autobuilder/libraries/sdl/libsdl2/CHANGELOG.md)
 
-## Unreleased
+## 14.1-riscos5 (tag `14.1.5`)
 
-- Starting the game no longer freezes the desktop for as long: the
+Changes since 14.1-riscos4.
+
+- Starting the game no longer freezes the desktop for as long. The
   graphics and sounds are read in far fewer, larger pieces, and the desktop
   keeps running while they load. Some of the very first loading still
   happens before the game has a window, so the desktop can pause briefly.
-- A clearer message if the game is started from a TaskWindow, which can't
-  open a desktop window: it says to use `*WimpTask` (from riscos-mesa
-  `c0371ea`, which also fixes 12-letter icon bar sprite names).
-- The memory report in `OpenTTDlog` is now off unless asked for: remove the
-  `|` from the `Set OpenTTD$Debug` line in `!Run` (it passes `-d driver=1`).
-- SDL now comes from the same RISC OS overlay as the Mesa (OpenGL) port,
-  copied from riscos-mesa (`08057f9`) rather than kept separately. It adds
-  one thing OpenTTD didn't have: in a desktop window, SDL's own waits give
-  time to other tasks (`Wimp_PollIdle`). The OpenGL code in it isn't
-  built for OpenTTD.
 - Desktop shutdown while the game runs in a window: the game now gets the
   chance to ask "quit?" first. Say yes and the shutdown carries on; say no
   and it's cancelled. Quitting it from the Task Manager asks the same way.
   If the desktop insists on quitting, the game does quit. The close icon
-  sends SDL's normal "window closed" event (the game still quits). From
-  riscos-mesa `2c29a8d`.
+  sends SDL's normal "window closed" event (the game still quits).
+- In a desktop window, SDL's own waits give time to other tasks
+  (`Wimp_PollIdle`).
+- A clearer message if the game is started from a TaskWindow, which can't
+  open a desktop window: it says to use `*WimpTask`. Icon bar sprite names
+  of 12 letters now work.
 - The desktop window scale can also be set with the system variable
-  `SDL_RISCOS_WINDOW_SCALE` (or the SDL hint of that name); `SDL$WindowScale`
-  in `!Run` still works. From riscos-mesa `1d85a10`, with other tidy-ups
-  that don't change behaviour.
+  `SDL_RISCOS_WINDOW_SCALE`; `SDL$WindowScale` in `!Run` still works.
+- The memory report in `OpenTTDlog` is now off unless asked for: remove the
+  `|` from the `Set OpenTTD$Debug` line in `!Run` (it passes `-d driver=1`).
+- SDL now comes from the same RISC OS overlay as the Mesa (OpenGL) port:
+  an unmodified copy of riscos-mesa's `patches/sdl2` (commit `c0371ea`),
+  which is where changes to it are made. Its OpenGL code isn't built for
+  OpenTTD.
 - Tidier code, with no other change in behaviour:
-  - the OpenTTD changes are now one patch per change
-    (`patches/openttd/14.1/`), and the build scripts can be run again;
+  - the OpenTTD changes are one patch per change
+    (`patches/openttd/14.1/`), each saying what it does and why;
+  - the build scripts can be run again after a failure, and check out the
+    tested GCCSDK and OpenTTD versions;
+  - `32bpp_neon.cpp` notes that it must be kept in step with the SSE
+    sprite drawer.
 
 ## 14.1-riscos4 (tag `14.1.4`)
 
