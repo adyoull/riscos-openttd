@@ -6,12 +6,15 @@ SDL2 video driver behaviour on RISC OS.
 - switching full screen recreates the window (the RISC OS SDL driver can't
   switch an existing window);
 - the pointer never "leaves" in full screen;
-- drawing on the game thread is off by default (-v sdl:threads turns it on).
+- drawing on the game thread is off by default (-v sdl:threads turns it on);
+- RiscOsKeepDesktopAlive(): lets the Wimp poll (SDL_PumpEvents, main thread,
+  at most every 50 ms) while files are read before the main loop runs, so
+  the desktop doesn't freeze during loading. Called by patch 13.
 
 For OpenTTD 14.1. See docs/PORTING-NOTES.md in riscos-openttd.
 
 diff --git a/src/video/sdl2_v.cpp b/src/video/sdl2_v.cpp
-index e57cfa6..10e2cbe 100644
+index e57cfa6..8f3a050 100644
 --- a/src/video/sdl2_v.cpp
 +++ b/src/video/sdl2_v.cpp
 @@ -181,6 +181,9 @@ bool VideoDriver_SDL_Base::CreateMainWindow(uint w, uint h, uint flags)
@@ -32,7 +35,7 @@ index e57cfa6..10e2cbe 100644
  	return true;
  }
  
-@@ -373,8 +377,43 @@ static uint ConvertSdlKeycodeIntoMy(SDL_Keycode kc)
+@@ -373,8 +377,62 @@ static uint ConvertSdlKeycodeIntoMy(SDL_Keycode kc)
  	return key;
  }
  
@@ -66,6 +69,25 @@ index e57cfa6..10e2cbe 100644
 +	Debug(driver, 1, "RISC OS memory t={}s: heap DA {} KB, mmap areas {} ({} KB), free {} KB",
 +		secs - t0, heap / 1024, mmap_count, mmap_total / 1024, free_pool / 1024);
 +}
++
++static std::thread::id _riscos_main_thread;
++
++/**
++ * Called from the file reading code (RandomAccessFile). Loading the graphics
++ * and sounds at startup takes a while before the main loop first polls, and a
++ * desktop window that isn't polled freezes the whole desktop. So, on the main
++ * thread and at most every 50 ms, let SDL poll the Wimp; the events wait in
++ * SDL's queue for the main loop.
++ */
++void RiscOsKeepDesktopAlive()
++{
++	static auto next = std::chrono::steady_clock::time_point();
++	if (SDL_WasInit(SDL_INIT_VIDEO) == 0 || std::this_thread::get_id() != _riscos_main_thread) return;
++	auto now = std::chrono::steady_clock::now();
++	if (now < next) return;
++	next = now + std::chrono::milliseconds(50);
++	SDL_PumpEvents();
++}
 +#endif
 +
  bool VideoDriver_SDL_Base::PollEvent()
@@ -76,7 +98,7 @@ index e57cfa6..10e2cbe 100644
  	SDL_Event ev;
  
  	if (!SDL_PollEvent(&ev)) return false;
-@@ -503,9 +542,14 @@ bool VideoDriver_SDL_Base::PollEvent()
+@@ -503,9 +561,14 @@ bool VideoDriver_SDL_Base::PollEvent()
  				/* Ensure pointer lock will not occur. */
  				SDL_SetRelativeMouseMode(SDL_FALSE);
  			} else if (ev.window.event == SDL_WINDOWEVENT_LEAVE) {
@@ -91,10 +113,14 @@ index e57cfa6..10e2cbe 100644
  			}
  			break;
  		}
-@@ -545,6 +589,12 @@ const char *VideoDriver_SDL_Base::Start(const StringList &param)
+@@ -545,6 +608,16 @@ const char *VideoDriver_SDL_Base::Start(const StringList &param)
  
  	this->startup_display = FindStartupDisplay(GetDriverParamInt(param, "display", -1));
  
++#if defined(__riscos__)
++	_riscos_main_thread = std::this_thread::get_id();
++#endif
++
 +#if defined(__riscos__)
 +	/* Let !Run choose: -v sdl:fullscreen or -v sdl:windowed (and -r WxH for the size). */
 +	if (GetDriverParamBool(param, "fullscreen")) _fullscreen = true;
@@ -104,7 +130,7 @@ index e57cfa6..10e2cbe 100644
  	if (!CreateMainSurface(_cur_resolution.width, _cur_resolution.height, false)) {
  		return SDL_GetError();
  	}
-@@ -564,8 +614,13 @@ const char *VideoDriver_SDL_Base::Start(const StringList &param)
+@@ -564,8 +637,13 @@ const char *VideoDriver_SDL_Base::Start(const StringList &param)
  
  #ifdef __EMSCRIPTEN__
  	this->is_game_threaded = false;
@@ -118,7 +144,7 @@ index e57cfa6..10e2cbe 100644
  #endif
  
  	return nullptr;
-@@ -662,6 +717,22 @@ bool VideoDriver_SDL_Base::ChangeResolution(int w, int h)
+@@ -662,6 +740,22 @@ bool VideoDriver_SDL_Base::ChangeResolution(int w, int h)
  
  bool VideoDriver_SDL_Base::ToggleFullscreen(bool fullscreen)
  {

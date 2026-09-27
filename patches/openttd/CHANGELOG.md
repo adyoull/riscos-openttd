@@ -3,6 +3,21 @@
 Changes made by the patches in `14.1/` to OpenTTD 14.1, newest first.
 See [PORTING-NOTES](../../docs/PORTING-NOTES.md) for more detail.
 
+## 2026-09-27 (startup)
+
+### The desktop no longer freezes while the game loads
+- New `13-file-read-speed.patch`: `RandomAccessFile` has a 32 KB buffer on
+  RISC OS, `SeekTo` stays inside the buffer when it can (and doesn't seek
+  when the file is already at the target), and `ReadBlock` uses the
+  buffered bytes first. Loading the sprite tables used to throw the buffer
+  away on almost every step: on a PC the startup took about 32,500 seeks
+  and 11,000 reads, now about 1,400 and 6,200. Output identical (800,000
+  random operations compared with the original code).
+- The base set MD5 check reads 32 KB at a time instead of 1 KB.
+- `09-sdl2-video.patch`: `RiscOsKeepDesktopAlive()` calls `SDL_PumpEvents`
+  (a Wimp poll in a desktop window) at most every 50 ms, on the main thread
+  only; `RandomAccessFile` calls it on every buffer refill.
+
 ## 2026-09-27 (maintenance)
 
 ### Memory report only when asked for

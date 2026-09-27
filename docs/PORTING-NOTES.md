@@ -19,10 +19,11 @@ applies on its own. `build/package.sh` joins them into one
 | 06 | `src/os/unix/unix_main.cpp` | The C heap is a dynamic area named "OpenTTD Heap" (up to 512MB) |
 | 07 | `src/spritecache.cpp` | Sprite cache capped at 128 MiB, and allocated without the 1.5x probe |
 | 08 | `src/textfile_gui.cpp` | `GetTextfile` results are cached. Only `.txt`/`.md` are probed on RISC OS (this was a multi-second pause opening Game Options) |
-| 09 | `src/video/sdl2_v.cpp` | Memory report every 10s with `-d driver=1` (`OpenTTD$Debug` in `!Run`). `-v sdl:windowed` / `sdl:fullscreen`. Full screen toggles by recreating the window. Drawing from the game thread is off by default |
+| 09 | `src/video/sdl2_v.cpp` | Memory report every 10s with `-d driver=1` (`OpenTTD$Debug` in `!Run`). `-v sdl:windowed` / `sdl:fullscreen`. Full screen toggles by recreating the window. Drawing from the game thread is off by default. `RiscOsKeepDesktopAlive()` polls the Wimp during loading |
 | 10 | `src/video/sdl2_default_v.cpp` | The RISC OS screen is XBGR8888: draw into an XRGB8888 shadow surface and swap red and blue one word at a time in `Paint()` |
 | 11 | `src/music/midisynth_m.cpp`, `CMakeLists.txt` | New `midisynth` music driver: renders MIDI through a SoundFont with the [midisynth](https://github.com/adyoull/riscos-midisynth) library, into OpenTTD's own mixer (like the FluidSynth driver). Built when `libmidisynth.a` is found |
 | 12 | `src/blitter/32bpp_neon.cpp/.hpp`, `src/blitter/CMakeLists.txt` | Optional `32bpp-neon` blitter: a NEON port of the SSE blitter, bit-identical to `32bpp-sse4`. Only in NEON builds; chosen with `-b 32bpp-neon` (`OpenTTD$Blitter` in `!Run`) |
+| 13 | `src/random_access_file.cpp/.h`, `src/gfxinit.cpp` | Faster startup: 32 KB file buffer that seeks inside itself, 32 KB MD5 reads, and the desktop is polled while files load (`RiscOsKeepDesktopAlive()` in `sdl2_v.cpp`) |
 
 ### Moving to a newer OpenTTD
 

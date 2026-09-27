@@ -8,6 +8,13 @@ SDL2 is listed in more detail here:
 
 ## Unreleased
 
+- Starting the game no longer freezes the desktop for as long: the
+  graphics and sounds are read in far fewer, larger pieces, and the desktop
+  keeps running while they load. Some of the very first loading still
+  happens before the game has a window, so the desktop can pause briefly.
+- A clearer message if the game is started from a TaskWindow, which can't
+  open a desktop window: it says to use `*WimpTask` (from riscos-mesa
+  `c0371ea`, which also fixes 12-letter icon bar sprite names).
 - The memory report in `OpenTTDlog` is now off unless asked for: remove the
   `|` from the `Set OpenTTD$Debug` line in `!Run` (it passes `-d driver=1`).
 - SDL now comes from the same RISC OS overlay as the Mesa (OpenGL) port,
