@@ -16,4 +16,9 @@ START-HERE.md
 start-here.md
 *START-HERE*.md
 *start-here*.md
+
+# Notes passed between projects, never committed
+handoffs/
+**/handoffs/
+*handoff*.md
 build-fast/
