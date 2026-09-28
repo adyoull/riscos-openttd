@@ -21,8 +21,9 @@ Requirements
    loaded by !Run; a newer copy in !System is used instead if you have
    one. It comes from UnixLib 5.0.1 and makes the game's threads safe
    alongside other desktop tasks.
- * For sound, the SharedSound (1.07 or later), StreamManager (0.03 or
-   later) and SharedSoundBuffer (0.07 or later) modules. !Run loads
+ * For sound, the SharedSound (1.07 or later, part of RISC OS 5),
+   StreamManager (0.03 or later) and SharedSoundBuffer (0.07 or later)
+   modules. !Run loads
    them from System:Modules if they're there. Without them the
    DigitalRenderer module is used instead, and with neither the game
    runs silently. Music needs sound to be working.
@@ -39,10 +40,12 @@ included with OpenTTD. If you don't have them, download ssb.zip from the
 !RDPClient page on Andrew Sellors' website, where they are hosted by kind
 permission of the author:
 
-  https://orac.co.uk/software/rdpclient/
+  https://orac.co.uk/software/rdpclient/rdpclient.html
 
 then merge its !System into yours: open !Boot, click System, and drag
-the !System from ssb.zip into the System merge window.
+the !System from ssb.zip into the System merge window. (SharedSound is
+part of RISC OS; only StreamManager and SharedSoundBuffer come from
+ssb.zip.)
 
 John Duffell's own site (now on the Internet Archive) has more details:
 

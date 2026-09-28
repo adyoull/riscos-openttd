@@ -35,12 +35,16 @@ over the new one. Your settings and saved games are in
 - RISC OS 5 on a Raspberry Pi 2, 3, 4 or 400 (or another ARMv7 machine with
   VFP).
 - ARMEABISupport and SharedUnixLibrary 1.16 or later, both from !PackMan.
-- For sound (and music): SharedSound, plus StreamManager and
-  SharedSoundBuffer. StreamManager and SharedSoundBuffer are freeware by
-  John Duffell and can't be included here. If you don't have them, get
-  `ssb.zip` from the !RDPClient page at https://orac.co.uk/software/rdpclient/
-  and merge its `!System` into yours. Without them the game uses
-  DigitalRenderer if you have it, or runs silently.
+- For sound (and music): SharedSound (part of RISC OS 5), plus
+  StreamManager and SharedSoundBuffer. StreamManager and SharedSoundBuffer
+  are freeware by John Duffell and can't be included here. If you don't
+  have them, download `ssb.zip` from Andrew Sellors' !RDPClient page and
+  merge its `!System` into yours:
+  https://orac.co.uk/software/rdpclient/rdpclient.html
+  John Duffell's own site (now on the Internet Archive) has more details:
+  https://web.archive.org/web/20110920080106/http://www.duffell.riscos.me.uk/
+  Without them the game uses DigitalRenderer if you have it, or runs
+  silently.
 - About 128MB of free memory.
 
 The full list of changes is in CHANGELOG.md. Please report problems on the

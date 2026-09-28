@@ -22,9 +22,11 @@ RMEnsure PThreadTicker 0.01 RMLoad <OpenTTD$Dir>.PThrTicker
 
 | --- Sound ------------------------------------------------------------
 | Sound goes through SharedSoundBuffer and StreamManager (freeware by
-| John Duffell, not included: see !Help for where to get them), which mix
-| with other programs' sound. If they aren't there, DigitalRenderer is
-| used instead, and with neither the game runs silently.
+| John Duffell, not included), which mix with other programs' sound.
+| To get them, download ssb.zip and merge its !System into yours:
+|   https://orac.co.uk/software/rdpclient/rdpclient.html
+| If they aren't there, DigitalRenderer is used instead, and with
+| neither the game runs silently.
 RMEnsure SharedSound 1.07 IfThere System:Modules.SSound Then RMLoad System:Modules.SSound
 RMEnsure StreamManager 0.03 IfThere System:Modules.StreamMan Then RMLoad System:Modules.StreamMan
 RMEnsure SharedSoundBuffer 0.07 IfThere System:Modules.SSBuffer Then RMLoad System:Modules.SSBuffer
