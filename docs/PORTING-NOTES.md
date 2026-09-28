@@ -129,7 +129,8 @@ full screen only.
 
 UnixLib changes are now made in the separate riscos-unixlib repository;
 `patches/unixlib/unixlib-riscos.diff` is a copy of its
-`patches/unixlib-riscos.diff` (commit `22511f2`). The changes OpenTTD
+`patches/unixlib-riscos.diff` (release UnixLib 5.0.1, tag `v5.0.1`;
+earlier `22511f2`). The changes OpenTTD
 needed first:
 
 - `wchar/wmissing.c`, `wchar/wctype.c`: implementations of the wide-character
@@ -151,6 +152,14 @@ Added since in riscos-unixlib (OpenTTD picks them up by relinking):
 - An atexit handler or destructor that joins a thread no longer aborts.
 - Built with `-fstack-clash-protection`, so UnixLib's own large stack
   frames (`execve`, the DNS resolver) are probed too.
+- UnixLib 5.0.1: the thread-switching timer no longer runs from the
+  program's own memory, which could crash another task paged in when it
+  fired. It runs from the PThreadTicker module (shipped in `!OpenTTD` and
+  loaded by `!Run`) or, without it, from a copy in the RMA. Threads
+  created before `Wimp_Initialise` (SDL's audio and timer threads; OpenTTD
+  starts sound after the window, but SDL may start its own earlier) now
+  get the Wimp filters that pause the timer while other tasks run.
+  The pthread RMA block is 472 bytes. `sched_get_priority_min/max` added.
 
 ## RISC OS lessons
 

@@ -30,6 +30,7 @@ The release binary is statically linked, so it contains:
 | OpenTTD 14.1 | GPL v2 |
 | SDL 2.26 (with the RISC OS changes) | zlib |
 | GCCSDK UnixLib | Mostly BSD-style and public domain (see its sources) |
+| PThreadTicker module (`app/!OpenTTD/PThrTicker,ffa`, from riscos-unixlib 5.0.1) | Revised BSD (`app/!OpenTTD/docs/PThreadTicker-Licence,fff`) |
 | libstdc++ / libgcc (GCC 10.2) | GPL v3 with the GCC Runtime Library Exception |
 | zlib | zlib |
 | libpng 1.6 | libpng licence |

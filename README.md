@@ -27,6 +27,8 @@ filetypes are kept.
   or RPCEmu.
 - The `ARMEABISupport` module.
 - `SharedUnixLibrary` 1.16 or later.
+- The `PThreadTicker` module from UnixLib 5.0.1. It's included in
+  `!OpenTTD` and loaded by `!Run`.
 - For sound: the SharedSound (1.07 or later), StreamManager (0.03 or
   later) and SharedSoundBuffer (0.07 or later) modules. `!Run` loads them
   from `System:Modules` if they're there. Without them it uses the

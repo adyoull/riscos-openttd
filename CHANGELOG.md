@@ -6,6 +6,15 @@ SDL2 is listed in more detail here:
 - [OpenTTD changes](patches/openttd/CHANGELOG.md)
 - [SDL2 changes](gccsdk-overlay/autobuilder/libraries/sdl/libsdl2/CHANGELOG.md)
 
+## Unreleased
+
+- Relinked with UnixLib 5.0.1 (riscos-unixlib `v5.0.1`). The timer that
+  switches between the game's threads could fire while another desktop
+  task was running and crash that task. It now runs from the new
+  PThreadTicker module (included in `!OpenTTD` and loaded by `!Run`, or
+  your own copy in `!System`), and is paused properly while other tasks
+  run, including for threads started before the game's window opened.
+
 ## 14.1-riscos5 (tag `14.1.5`)
 
 Changes since 14.1-riscos4.

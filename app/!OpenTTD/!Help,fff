@@ -17,6 +17,10 @@ Requirements
    (Pi 1 / Zero), older ARM machines or RPCEmu.
  * The ARMEABISupport module.
  * SharedUnixLibrary 1.16 or later.
+ * The PThreadTicker module is included (!OpenTTD.PThrTicker) and
+   loaded by !Run; a newer copy in !System is used instead if you have
+   one. It comes from UnixLib 5.0.1 and makes the game's threads safe
+   alongside other desktop tasks.
  * For sound, the SharedSound (1.07 or later), StreamManager (0.03 or
    later) and SharedSoundBuffer (0.07 or later) modules. !Run loads
    them from System:Modules if they're there. Without them the
@@ -140,7 +144,11 @@ Source code
 This build uses the unmodified OpenTTD 14.1 source from
 https://github.com/OpenTTD/OpenTTD (tag 14.1), plus the small RISC OS
 patch in docs.riscos-patch. It was built with the GCCSDK GCC 10.2
-cross compiler and SDL 2.26 (RISC OS video driver).
+cross compiler, UnixLib 5.0.1 and SDL 2.26 (RISC OS video driver).
+
+PThreadTicker is (C) 2026 UnixLib Developers, under the revised BSD
+licence in docs.PThreadTicker-Licence. Source:
+https://github.com/adyoull/riscos-unixlib
 
 OpenGFX is licensed under the GNU GPL v2. The OpenSFX sounds are
 licensed under CC-BY-SA 3.0. See docs.OpenGFX-copyright and
