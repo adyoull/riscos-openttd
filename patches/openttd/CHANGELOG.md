@@ -12,6 +12,14 @@ See [PORTING-NOTES](../../docs/PORTING-NOTES.md) for more detail.
   mbedTLS `-0x7780`), and every download fell back to the TCP route. R3 is
   now the name itself, as in FFmpeg's and YTDL's AcornSSL code.
 
+### New `16-map-memory-check.patch`
+- A 4096x4096 scenario stopped the game: "Out of memory. Cannot allocate
+  134217728 bytes" from `Map::Allocate` (backtrace: MAPSChunkHandler::Load
+  → Map::Allocate → MallocError). `src/saveload/map_sl.cpp` now tries the
+  two tile arrays (8 and 4 bytes a tile) with `new (std::nothrow)` first
+  and fails the load with "not enough free memory for a WxH map (N MB)"
+  if either can't be had.
+
 ### `04-riscos-paths.patch`: tar files get the Data filetype
 - The first log with patch 15 showed the crash: "abort on data transfer"
   inside SparkFS's Tar module (`*Where`: module 'Tar'). UnixLib gives a new

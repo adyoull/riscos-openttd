@@ -16,6 +16,9 @@ SDL2 is listed in more detail here:
   Tar files were given the Tar filetype, so SparkFS opened them as
   archives and its Tar module crashed. OpenTTD now gives its tar files the
   Data filetype before reading them.
+- Loading a map too big for the free memory (a 4096x4096 scenario, say)
+  now says so and the game carries on, instead of the game stopping with
+  "Out of memory".
 - If the game crashes, `OpenTTDlog` now has the RISC OS error message
   (which says where the fault was) and a backtrace of every thread.
 - Relinked with UnixLib 5.0.3 (riscos-unixlib `v5.0.3`). The timer that

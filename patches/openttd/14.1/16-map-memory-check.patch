@@ -1,0 +1,66 @@
+Fail a load cleanly when there isn't the memory for the map.
+
+A 4096x4096 scenario stopped the game with "Out of memory. Cannot allocate
+134217728 bytes": Map::Allocate's CallocT treats a failed allocation as
+fatal. The map's tile arrays are 12 bytes a tile, in two blocks (128 MB
+and 64 MB at 4096x4096), which on a Raspberry Pi can be more than is free.
+
+On RISC OS the MAPS chunk now tries both blocks first (new (std::nothrow),
+then given back) and, if either can't be had, fails the load with
+"Internal error: not enough free memory for a WxH map (N MB)", the same way
+as a broken savegame, and the game carries on. Other large allocations
+later in a load can still run out; this covers the biggest and most
+likely one.
+
+For OpenTTD 14.1. See docs/PORTING-NOTES.md in riscos-openttd.
+
+diff --git a/src/saveload/map_sl.cpp b/src/saveload/map_sl.cpp
+index f5407dd..e101462 100644
+--- a/src/saveload/map_sl.cpp
++++ b/src/saveload/map_sl.cpp
+@@ -21,6 +21,35 @@
+ static uint32_t _map_dim_x;
+ static uint32_t _map_dim_y;
+ 
++#if defined(__riscos__)
++/**
++ * RISC OS: fail the load with a message, instead of stopping the game, if
++ * there isn't the memory for the map. Map::Allocate treats that as fatal
++ * ("Out of memory"), which is reasonable where memory is plentiful, but on a
++ * Raspberry Pi a 4096x4096 map's two tile arrays (128 MB and 64 MB, each in
++ * one block) can easily be more than is free. Both blocks are tried first
++ * and given back, and the load fails like a broken savegame if either can't
++ * be had. (At this point the old game has already been replaced by a
++ * 256x256 blank map, so its memory doesn't count against the new one.)
++ * @param size_x Map width in tiles.
++ * @param size_y Map height in tiles.
++ */
++static void RiscOsCheckMapMemory(uint size_x, uint size_y)
++{
++	const size_t tiles = static_cast<size_t>(size_x) * size_y;
++	const size_t base_bytes = tiles * 8;     // Tile::TileBase, static_assert'ed to 8 bytes in map_func.h
++	const size_t extended_bytes = tiles * 4; // Tile::TileExtended
++	byte *base = new (std::nothrow) byte[base_bytes];
++	byte *extended = base == nullptr ? nullptr : new (std::nothrow) byte[extended_bytes];
++	const bool enough = base != nullptr && extended != nullptr;
++	delete[] extended;
++	delete[] base;
++	if (!enough) {
++		SlError(STR_GAME_SAVELOAD_ERROR_BROKEN_INTERNAL_ERROR, fmt::format("not enough free memory for a {}x{} map ({} MB)", size_x, size_y, (base_bytes + extended_bytes) >> 20));
++	}
++}
++#endif
++
+ static const SaveLoad _map_desc[] = {
+ 	SLEG_CONDVAR("dim_x", _map_dim_x, SLE_UINT32, SLV_6, SL_MAX_VERSION),
+ 	SLEG_CONDVAR("dim_y", _map_dim_y, SLE_UINT32, SLV_6, SL_MAX_VERSION),
+@@ -48,6 +77,9 @@ struct MAPSChunkHandler : ChunkHandler {
+ 		SlGlobList(slt);
+ 		if (!IsSavegameVersionBefore(SLV_RIFF_TO_ARRAY) && SlIterateArray() != -1) SlErrorCorrupt("Too many MAPS entries");
+ 
++#if defined(__riscos__)
++		RiscOsCheckMapMemory(_map_dim_x, _map_dim_y);
++#endif
+ 		Map::Allocate(_map_dim_x, _map_dim_y);
+ 	}
+ 
