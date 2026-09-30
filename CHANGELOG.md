@@ -12,6 +12,10 @@ SDL2 is listed in more detail here:
   instead of only OpenTTD's slower fallback route. Certificates are
   checked by AcornSSL; a bad one isn't prompted for, the download just
   uses the fallback. `!Run` loads AcornSSL if it isn't already.
+- Downloaded content no longer crashes the game when SparkFS is loaded.
+  Tar files were given the Tar filetype, so SparkFS opened them as
+  archives and its Tar module crashed. OpenTTD now gives its tar files the
+  Data filetype before reading them.
 - If the game crashes, `OpenTTDlog` now has the RISC OS error message
   (which says where the fault was) and a backtrace of every thread.
 - Relinked with UnixLib 5.0.3 (riscos-unixlib `v5.0.3`). The timer that

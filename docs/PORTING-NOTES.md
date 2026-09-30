@@ -14,7 +14,7 @@ applies on its own. `build/package.sh` joins them into one
 | 02 | `src/network/core/os_abstraction.h`, `host.cpp` | No `ifaddrs.h`. `AI_ADDRCONFIG` fallback. Broadcast discovery uses `INADDR_BROADCAST` |
 | 03 | `src/string_func.h` | UnixLib has `strcasestr` |
 | 03 | `src/ini.cpp` | No `fdatasync` |
-| 04 | `src/stdafx.h`, `src/fileio.cpp` | No XDG directories. The home directory is `<Choices$Write>`. No lower-case retry in `FioFOpenFile` (file probing is slow on RISC OS) |
+| 04 | `src/stdafx.h`, `src/fileio.cpp` | No XDG directories. The home directory is `<Choices$Write>`. No lower-case retry in `FioFOpenFile` (file probing is slow on RISC OS). Tar files with the Tar filetype (&C46) get Data (&FFD) before they are read, so SparkFS doesn't treat them as images (its Tar module crashed on OpenTTD's downloads) |
 | 05 | `src/openttd.cpp` | Logs its arguments to stderr and ignores stray non-option arguments (from `!Run`) |
 | 06 | `src/os/unix/unix_main.cpp` | The C heap is a dynamic area named "OpenTTD Heap" (up to 512MB) |
 | 07 | `src/spritecache.cpp` | Sprite cache capped at 128 MiB, and allocated without the 1.5x probe |

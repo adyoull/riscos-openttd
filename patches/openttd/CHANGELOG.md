@@ -12,6 +12,17 @@ See [PORTING-NOTES](../../docs/PORTING-NOTES.md) for more detail.
   mbedTLS `-0x7780`), and every download fell back to the TCP route. R3 is
   now the name itself, as in FFmpeg's and YTDL's AcornSSL code.
 
+### `04-riscos-paths.patch`: tar files get the Data filetype
+- The first log with patch 15 showed the crash: "abort on data transfer"
+  inside SparkFS's Tar module (`*Where`: module 'Tar'). UnixLib gives a new
+  `name/tar` file MimeMap's Tar filetype (&C46); SparkFS claims that type
+  as an image filing system, so its Tar module handled OpenTTD's
+  downloaded content whenever it was looked at, crashed, and corrupted
+  SparkFS's memory ("SparkFS memory corrupted" in the Filer afterwards).
+- `TarScanner::AddFile` (`src/fileio.cpp`), which sees every tar before
+  it's opened and each download straight after it's unpacked, changes
+  &C46 to Data (&FFD) with OS_File 18.
+
 ### New `15-riscos-error-report.patch`
 - `src/os/unix/crashlog_unix.cpp`: on RISC OS, SIGEMT (a processor
   exception such as a data abort) and SIGOSERROR (a RISC OS error) print

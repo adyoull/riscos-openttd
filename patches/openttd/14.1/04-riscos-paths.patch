@@ -1,17 +1,38 @@
-RISC OS file locations.
+RISC OS file locations and files.
 
 No XDG directories: the "home" directory is <Choices$Write>, so settings
 and saved games go in <Choices$Write>.OpenTTD. FioFOpenFile doesn't retry
 a missing file in lower case: RISC OS filing systems are case-insensitive,
 so the retry only costs time.
 
+Tar files get the Data filetype before OpenTTD reads them. UnixLib gives a
+new "name/tar" file MimeMap's type for tar, &C46, which SparkFS claims as
+an image filing system; its Tar module then handles the file whenever it's
+looked at, and with OpenTTD's downloaded content it crashed (a data abort
+in the module), taking the game down and corrupting SparkFS's memory.
+TarScanner::AddFile, which sees every tar before it's opened (and each new
+download straight after it's unpacked), changes &C46 to &FFD.
+
 For OpenTTD 14.1. See docs/PORTING-NOTES.md in riscos-openttd.
 
 diff --git a/src/fileio.cpp b/src/fileio.cpp
-index 15c519b..53a93ac 100644
+index 15c519b..744b5d8 100644
 --- a/src/fileio.cpp
 +++ b/src/fileio.cpp
-@@ -220,7 +220,7 @@ static FILE *FioFOpenFileSp(const std::string &filename, const char *mode, Searc
+@@ -29,6 +29,12 @@
+ #include <sstream>
+ #include <filesystem>
+ 
++#if defined(__riscos__)
++#	include <kernel.h>
++#	include <swis.h>
++#	include <unixlib/local.h>
++#endif
++
+ #include "safeguards.h"
+ 
+ /** Whether the working directory should be scanned. */
+@@ -220,7 +226,7 @@ static FILE *FioFOpenFileSp(const std::string &filename, const char *mode, Searc
  #endif
  
  	f = fopen(buf.c_str(), mode);
@@ -20,7 +41,47 @@ index 15c519b..53a93ac 100644
  	if (f == nullptr && strtolower(buf, subdir == NO_DIRECTORY ? 0 : _searchpaths[sp].size() - 1) ) {
  		f = fopen(buf.c_str(), mode);
  	}
-@@ -826,7 +826,10 @@ bool DoScanWorkingDirectory()
+@@ -491,8 +497,39 @@ static std::string ExtractString(char *buffer, size_t buffer_length)
+ 	return StrMakeValid(std::string_view(buffer, length));
+ }
+ 
++#if defined(__riscos__)
++/**
++ * RISC OS: give a tar file with the Tar filetype (&C46) the Data filetype.
++ *
++ * UnixLib gives a new "name/tar" file the type MimeMap has for "tar", which
++ * is &C46. SparkFS claims that type as an image filing system, and its Tar
++ * module then handles the file whenever it's looked at; with OpenTTD's
++ * content tars that module has crashed (a data abort inside it), taking the
++ * game and SparkFS's memory with it. OpenTTD reads its tars itself, so they
++ * don't need to be images. The type is changed before the tar is opened.
++ * @param filename The tar file.
++ */
++static void RiscOsTarAsData(const std::string &filename)
++{
++	char ro_name[1024];
++	if (__riscosify_std(filename.c_str(), 0, ro_name, sizeof(ro_name), nullptr) == nullptr) return;
++
++	int object_type, load;
++	if (_swix(OS_File, _INR(0, 1) | _OUT(0) | _OUT(2), 17, ro_name, &object_type, &load) != nullptr) return;
++	if (object_type == 0 || (static_cast<unsigned>(load) >> 20) != 0xFFF) return; // missing, or no filetype
++	if (((load >> 8) & 0xFFF) != 0xC46) return;
++
++	if (_swix(OS_File, _INR(0, 2), 18, ro_name, 0xFFD) == nullptr) {
++		Debug(misc, 1, "Set {} to the Data filetype, so SparkFS doesn't treat it as an image", filename);
++	}
++}
++#endif
++
+ bool TarScanner::AddFile(const std::string &filename, size_t, [[maybe_unused]] const std::string &tar_filename)
+ {
++#if defined(__riscos__)
++	RiscOsTarAsData(filename);
++#endif
+ 	/* No tar within tar. */
+ 	assert(tar_filename.empty());
+ 
+@@ -826,7 +863,10 @@ bool DoScanWorkingDirectory()
   */
  static std::string GetHomeDir()
  {
