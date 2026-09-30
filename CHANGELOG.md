@@ -12,6 +12,9 @@ SDL2 is listed in more detail here:
   instead of only OpenTTD's slower fallback route. Certificates are
   checked by AcornSSL; a bad one isn't prompted for, the download just
   uses the fallback. `!Run` loads AcornSSL if it isn't already.
+- If the game stops on a processor exception ("EMT trap") or a RISC OS
+  error, `OpenTTDlog` now also has the error message, which says where
+  the fault was.
 - Relinked with UnixLib 5.0.3 (riscos-unixlib `v5.0.3`). The timer that
   switches between the game's threads could fire while another desktop
   task was running and crash that task. It now runs from the new

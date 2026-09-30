@@ -3,6 +3,24 @@
 Changes made by the patches in `14.1/` to OpenTTD 14.1, newest first.
 See [PORTING-NOTES](../../docs/PORTING-NOTES.md) for more detail.
 
+## 2026-09-30 (first test on the Pi)
+
+### `14-https-acornssl.patch`: the host name is now sent correctly
+- `SO_ACORNSSL_HOSTNAME` was given a pointer to the name pointer, so
+  AcornSSL sent the pointer's bytes as the SNI name. binaries.openttd.org
+  answered with a fatal alert ("Handshake error (state 30,592)" =
+  mbedTLS `-0x7780`), and every download fell back to the TCP route. R3 is
+  now the name itself, as in FFmpeg's and YTDL's AcornSSL code.
+
+### New `15-riscos-error-report.patch`
+- `src/os/unix/crashlog_unix.cpp`: on RISC OS, SIGEMT (a processor
+  exception such as a data abort) and SIGOSERROR (a RISC OS error) print
+  "RISC OS error &<number>: <message>" before UnixLib's backtrace. For
+  SIGEMT UnixLib's own report leaves the error out, and it is the part that
+  says where the fault was. The handler ends with `_exit`, so a running
+  `std::thread` no longer adds "terminate called without an active
+  exception".
+
 ## 2026-09-30 (HTTPS through AcornSSL)
 
 ### New `14-https-acornssl.patch`

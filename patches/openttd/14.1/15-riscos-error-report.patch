@@ -1,0 +1,64 @@
+Report the RISC OS error when the game stops on one.
+
+UnixLib turns a RISC OS error (SIGOSERROR) and a processor exception such
+as a data abort (SIGEMT, "EMT trap") into a signal. Its report names the
+signal and prints a backtrace, but for SIGEMT it leaves out the error
+itself, which says what happened and where: "abort on data transfer at
+&...", for example, shows whether the fault was in the game or in a module.
+- On RISC OS, crashlog_unix.cpp catches SIGEMT and SIGOSERROR, prints
+  "RISC OS error &<number>: <message>", then UnixLib's usual report.
+- It ends with _exit, so a still-running thread no longer adds
+  "terminate called without an active exception" to the log.
+
+For OpenTTD 14.1. See docs/PORTING-NOTES.md in riscos-openttd.
+
+diff --git a/src/os/unix/crashlog_unix.cpp b/src/os/unix/crashlog_unix.cpp
+index 7ab97a7..656a734 100644
+--- a/src/os/unix/crashlog_unix.cpp
++++ b/src/os/unix/crashlog_unix.cpp
+@@ -35,6 +35,11 @@
+ #include <unistd.h>
+ #endif
+ 
++#if defined(__riscos__)
++#	include <kernel.h>
++#	include <unixlib/local.h>
++#endif
++
+ #include "../../safeguards.h"
+ 
+ /** The signals we want our crash handler to handle. */
+@@ -214,9 +219,33 @@ static void CDECL HandleCrash(int signum)
+ 	_exit(2);
+ }
+ 
++#if defined(__riscos__)
++/**
++ * RISC OS: UnixLib turns a RISC OS error (SIGOSERROR) and a processor
++ * exception such as a data abort (SIGEMT) into a signal. Its own report names
++ * the signal and gives a backtrace, but leaves out the error itself, which
++ * says what went wrong and where (for example "Internal error: abort on data
++ * transfer at &..."). Print the error first, then UnixLib's usual report.
++ * @param signum The signal.
++ */
++static void CDECL HandleRiscOsError(int signum)
++{
++	const _kernel_oserror *e = _kernel_last_oserror();
++	if (e != nullptr) fmt::print(stderr, "\nRISC OS error &{:X}: {}\n", static_cast<uint32_t>(e->errnum), e->errmess);
++	__write_backtrace(signum);
++	/* _exit, not exit: static destructors (a joinable std::thread, say) would
++	 * only add "terminate called" to the report. */
++	_exit(2);
++}
++#endif
++
+ /* static */ void CrashLog::InitialiseCrashLog()
+ {
+ 	SetSignals(HandleCrash);
++#if defined(__riscos__)
++	signal(SIGEMT, HandleRiscOsError);
++	signal(SIGOSERROR, HandleRiscOsError);
++#endif
+ }
+ 
+ /* static */ void CrashLog::InitThread()

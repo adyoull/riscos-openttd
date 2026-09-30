@@ -12,3 +12,4 @@
 12-neon-blitter.patch
 13-file-read-speed.patch
 14-https-acornssl.patch
+15-riscos-error-report.patch

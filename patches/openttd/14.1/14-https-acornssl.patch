@@ -36,10 +36,10 @@ index b547b6f..6585f00 100644
  )
 diff --git a/src/network/core/http_riscos.cpp b/src/network/core/http_riscos.cpp
 new file mode 100644
-index 0000000..fd75778
+index 0000000..caae29b
 --- /dev/null
 +++ b/src/network/core/http_riscos.cpp
-@@ -0,0 +1,710 @@
+@@ -0,0 +1,712 @@
 +/*
 + * This file is part of OpenTTD.
 + * OpenTTD is free software; you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, version 2.
@@ -152,7 +152,7 @@ index 0000000..fd75778
 +	 */
 +	bool Open(const std::string &host, const sockaddr *address, socklen_t address_len)
 +	{
-+		this->host = host; // AcornSSL keeps the pointer, so the string must live as long as the session.
++		this->host = host; // Kept for the whole session, in case AcornSSL holds on to the pointer.
 +
 +		int handle;
 +		const _kernel_oserror *e = _swix(XAcornSSL_Creat, _INR(0, 2) | _OUT(0), AF_INET, SOCK_STREAM, 0, &handle);
@@ -160,10 +160,12 @@ index 0000000..fd75778
 +		this->handle = handle;
 +
 +		int on = 1;
-+		const char *name = this->host.c_str();
 +		int prompt_time = 0; // Fail on a bad certificate rather than asking; this is a background download.
 +		if ((e = _swix(XAcornSSL_Ioctl, _INR(0, 2), this->handle, ACORNSSL_FIONBIO, &on)) != nullptr) return this->Fail("can't make it non-blocking", e);
-+		if ((e = _swix(XAcornSSL_Setsockopt, _INR(0, 4), this->handle, SOL_SOCKET, SO_ACORNSSL_HOSTNAME, &name, 4)) != nullptr) return this->Fail("can't set the host name", e);
++		/* R3 points at the name itself and R4 is the size of that pointer. It is
++		 * not a pointer to a pointer: that sends the pointer's bytes as the SNI
++		 * name, and the server ends the handshake with a fatal alert. */
++		if ((e = _swix(XAcornSSL_Setsockopt, _INR(0, 4), this->handle, SOL_SOCKET, SO_ACORNSSL_HOSTNAME, this->host.c_str(), sizeof(const char *))) != nullptr) return this->Fail("can't set the host name", e);
 +		if ((e = _swix(XAcornSSL_Setsockopt, _INR(0, 4), this->handle, SOL_SOCKET, SO_ACORNSSL_PROMPTTIME, &prompt_time, 4)) != nullptr) {
 +			/* Not fatal: without it, a bad certificate is shown to the user to accept or reject. */
 +			Debug(net, 1, HTTP_LOG_PREFIX "can't turn the certificate prompt off: {}", e->errmess);
