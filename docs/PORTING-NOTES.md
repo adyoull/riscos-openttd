@@ -129,7 +129,7 @@ full screen only.
 
 UnixLib changes are now made in the separate riscos-unixlib repository;
 `patches/unixlib/unixlib-riscos.diff` is a copy of its
-`patches/unixlib-riscos.diff` (release UnixLib 5.0.1, tag `v5.0.1`;
+`patches/unixlib-riscos.diff` (release UnixLib 5.0.3, tag `v5.0.3`;
 earlier `22511f2`). The changes OpenTTD
 needed first:
 
@@ -160,6 +160,11 @@ Added since in riscos-unixlib (OpenTTD picks them up by relinking):
   starts sound after the window, but SDL may start its own earlier) now
   get the Wimp filters that pause the timer while other tasks run.
   The pthread RMA block is 472 bytes. `sched_get_priority_min/max` added.
+- UnixLib 5.0.2 and 5.0.3: 64-bit file sizes for programs built with
+  `_FILE_OFFSET_BITS=64` (OpenTTD isn't, so its `struct stat` is unchanged
+  and the old function names still link); `ctime()`/`asctime()` returned a
+  bad pointer; `read()` into an untouched stack page could abort (the
+  pages are now touched first); no build paths in the library.
 
 ## RISC OS lessons
 

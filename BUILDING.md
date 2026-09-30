@@ -36,7 +36,7 @@ This script:
 
 - applies `patches/gccsdk/gccsdk-toolchain.diff` and
   `patches/unixlib/unixlib-riscos.diff` (a copy of the patch from
-  riscos-unixlib's UnixLib 5.0.1 release, where all UnixLib changes are
+  riscos-unixlib's UnixLib 5.0.3 release, where all UnixLib changes are
   now made; rebuild UnixLib from clean when it changes);
 - builds the GCC 4.7.4 base toolchain (`gcc4/build-world`);
 - builds GCC 10.2 for `arm-riscos-gnueabihf` with the autobuilder, cross
@@ -110,7 +110,9 @@ This script:
 - builds the host tools (`build-host`);
 - configures the cross build with `build/toolchain-riscos.cmake`;
 - builds the standard program in `build-ro` and the NEON one
-  (`openttd-fast`) in `build-fast`, both with `-fstack-clash-protection`.
+  (`openttd-fast`) in `build-fast`, both with `-fstack-clash-protection`, and with
+  `-ffile-prefix-map` so the program records source paths as `openttd-14.1/…`
+  rather than the build machine's directories.
 
 `tools/check-stack-probes.py build-ro/openttd` should list only two functions,
 both in libstdc++ (with the riscos-unixlib UnixLib, which is built with

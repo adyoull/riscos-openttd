@@ -9,6 +9,9 @@ if [ "$OPENTTD_FAST" = 1 ]; then
 else
   BDIR=build-ro;   ARCHFLAGS="-mtune=cortex-a72 -fstack-clash-protection"
 fi
+# Record source paths in the program (assert messages, __FILE__) relative to
+# a neutral name rather than the build machine's directory.
+ARCHFLAGS="$ARCHFLAGS -ffile-prefix-map=$OPENTTD_SRC=openttd-14.1"
 mkdir -p "$OPENTTD_SRC/$BDIR"
 cd "$OPENTTD_SRC/$BDIR"
 rm -f CMakeCache.txt

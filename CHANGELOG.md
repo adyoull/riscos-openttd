@@ -8,12 +8,16 @@ SDL2 is listed in more detail here:
 
 ## Unreleased
 
-- Relinked with UnixLib 5.0.1 (riscos-unixlib `v5.0.1`). The timer that
+- Relinked with UnixLib 5.0.3 (riscos-unixlib `v5.0.3`). The timer that
   switches between the game's threads could fire while another desktop
   task was running and crash that task. It now runs from the new
   PThreadTicker module (included in `!OpenTTD` and loaded by `!Run`, or
   your own copy in `!System`), and is paused properly while other tasks
   run, including for threads started before the game's window opened.
+  UnixLib 5.0.3 also fixes `ctime()`/`asctime()` returning a bad pointer
+  and `read()` into a not-yet-used stack buffer crashing the program.
+- The program no longer contains the build machine's directory names (in
+  source file names used by assert messages).
 
 ## 14.1-riscos5 (tag `14.1.5`)
 
