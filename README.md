@@ -47,6 +47,9 @@ filetypes are kept.
     John Duffell's own site (now on the Internet Archive) has more details:
     <https://web.archive.org/web/20110920080106/http://www.duffell.riscos.me.uk/>.
 - About 128MB of free memory.
+- For downloading online content (Online Content in the main menu):
+  the AcornSSL module, part of RISC OS 5. `!Run` loads it. The game then
+  downloads over HTTPS; without it, it uses OpenTTD's own slower route.
 
 The download has two builds of the game: `openttd-fast`, which uses the
 NEON instructions of the Pi 2 and later (and other Cortex-A machines), and
@@ -88,8 +91,7 @@ seconds, remove the `|` from the `Set OpenTTD$Debug` line in `!Run`.
 
 - Music is synthesised in software, which takes some processor time. Turn it
   off in the game's Music window, or change `-m midisynth` in `!Run`.
-- There's no online content download (no libcurl), and no TrueType fonts, so
-  the game uses its sprite fonts.
+- No TrueType fonts, so the game uses its sprite fonts.
 - It needs ARMv7 + VFP, so there's no Pi 1 / RPCEmu build yet.
 
 ## What's in this repository

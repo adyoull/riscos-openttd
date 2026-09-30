@@ -11,3 +11,4 @@
 11-midisynth-music.patch
 12-neon-blitter.patch
 13-file-read-speed.patch
+14-https-acornssl.patch

@@ -1,0 +1,752 @@
+HTTPS for online content through the AcornSSL module.
+
+OpenTTD downloads online content over HTTPS when it can (libcurl on Unix,
+WinHTTP on Windows) and otherwise falls back to a slower route over its own
+content-server connection. On RISC OS the new http_riscos.cpp gives it
+HTTPS through AcornSSL, the TLS module in RISC OS 5, instead of libcurl:
+- a small HTTP/1.1 client (GET/POST, Content-Length, chunked or
+  close-delimited bodies, 1xx skipped, up to 5 redirects, 10 s connect and
+  30 s idle timeouts) on an "ottd:http" thread, like the curl version;
+- AcornSSL with non-blocking calls throughout (a blocking SWI would stop
+  every thread and the desktop), the host name set for the certificate
+  check and SNI, and no certificate prompt: a bad certificate fails the
+  request, and the content download falls back as before;
+- if AcornSSL isn't loaded, every request fails straight away and the
+  fallback is used.
+Tested on Linux with tools/http-test/run.sh (an OpenSSL stand-in for AcornSSL).
+
+For OpenTTD 14.1. See docs/PORTING-NOTES.md in riscos-openttd.
+
+diff --git a/src/network/core/CMakeLists.txt b/src/network/core/CMakeLists.txt
+index b547b6f..6585f00 100644
+--- a/src/network/core/CMakeLists.txt
++++ b/src/network/core/CMakeLists.txt
+@@ -43,7 +43,11 @@ add_files(
+     http_winhttp.cpp
+     CONDITION WIN32
+ )
++add_files(
++    http_riscos.cpp
++    CONDITION RISCOS
++)
+ add_files(
+     http_none.cpp
+-    CONDITION NOT CURL_FOUND AND NOT WIN32
++    CONDITION NOT CURL_FOUND AND NOT WIN32 AND NOT RISCOS
+ )
+diff --git a/src/network/core/http_riscos.cpp b/src/network/core/http_riscos.cpp
+new file mode 100644
+index 0000000..fd75778
+--- /dev/null
++++ b/src/network/core/http_riscos.cpp
+@@ -0,0 +1,710 @@
++/*
++ * This file is part of OpenTTD.
++ * OpenTTD is free software; you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, version 2.
++ * OpenTTD is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
++ * See the GNU General Public License for more details. You should have received a copy of the GNU General Public License along with OpenTTD. If not, see <http://www.gnu.org/licenses/>.
++ */
++
++/**
++ * @file http_riscos.cpp RISC OS implementation for HTTP requests, using the
++ * AcornSSL module for HTTPS.
++ *
++ * AcornSSL (part of RISC OS 5) runs the TLS handshake and checks the server's
++ * certificate against the system's trusted roots and the host name. On top of
++ * it this file speaks just enough HTTP/1.1 for OpenTTD: a GET or POST, redirects,
++ * and a body delimited by Content-Length, chunked encoding or the connection
++ * closing. It runs on its own thread, like the curl implementation, and uses
++ * non-blocking calls throughout: a SWI that blocks would stop every thread and
++ * the desktop with it.
++ */
++
++#include "../../stdafx.h"
++#include "../../debug.h"
++#include "../../rev.h"
++#include "../../thread.h"
++#include "../network_internal.h"
++
++#include "http.h"
++#include "http_shared.h"
++
++#include <atomic>
++#include <chrono>
++#include <condition_variable>
++#include <mutex>
++#include <queue>
++
++#include <netdb.h>
++#include <sys/socket.h>
++#include <netinet/in.h>
++
++#include "../../safeguards.h"
++
++/** Build a connection's name for the debug log. */
++#define HTTP_LOG_PREFIX "HTTP (AcornSSL): "
++
++namespace {
++
++using Clock = std::chrono::steady_clock;
++
++/** Result of a read or write on a secure connection. */
++enum class IoResult {
++	Done,      ///< Some data was transferred (or, for a read, the peer closed: see the count).
++	TryAgain,  ///< Nothing yet: the connection is still being set up, or no data is waiting.
++	Error,     ///< The connection failed.
++};
++
++} // namespace
++
++#if defined(OTTD_HTTP_TRANSPORT_HEADER)
++/* Host tests only: a stand-in for AcornSSL with the same interface as SecureConnection below. */
++#	include OTTD_HTTP_TRANSPORT_HEADER
++#else
++
++#include <kernel.h>
++#include <swis.h>
++
++namespace {
++
++/* AcornSSL SWIs (chunk &50F80); see the AcornSSL chapter of the RISC OS 5 PRM. */
++constexpr int XAcornSSL_Creat      = 0x20000 | 0x50F80;
++constexpr int XAcornSSL_Ioctl      = 0x20000 | 0x50F81;
++constexpr int XAcornSSL_Connect    = 0x20000 | 0x50F82;
++constexpr int XAcornSSL_Close      = 0x20000 | 0x50F84;
++constexpr int XAcornSSL_Write      = 0x20000 | 0x50F86;
++constexpr int XAcornSSL_Recv       = 0x20000 | 0x50F87;
++constexpr int XAcornSSL_Setsockopt = 0x20000 | 0x50F8B;
++
++constexpr int SO_ACORNSSL_HOSTNAME = 0x11E0;   ///< Name to check the certificate against, and to send as SNI.
++constexpr int SO_ACORNSSL_PROMPTTIME = 0x11E1; ///< How long the "bad certificate" dialogue waits; 0 = no dialogue, just fail.
++constexpr unsigned int ACORNSSL_FIONBIO = 0x8004667E; ///< _IOW('f', 126, int): set/clear non-blocking.
++
++/* Socket errors come back as RISC OS errors in the DCI4 range, errno in the low byte. */
++constexpr int DCI4_ERROR_BASE = 0x20E00;
++constexpr int DCI4_EWOULDBLOCK = 35;
++constexpr int DCI4_EINPROGRESS = 36;
++constexpr int DCI4_EALREADY = 37;
++constexpr int DCI4_ENOTCONN = 57;
++
++/**
++ * The errno of a failed socket-style SWI, or -1 for any other kind of error
++ * (for example "SWI not known" when AcornSSL isn't loaded).
++ */
++int SwiErrno(const _kernel_oserror *e)
++{
++	if ((e->errnum & ~0xFF) == DCI4_ERROR_BASE) return e->errnum & 0xFF;
++	return -1;
++}
++
++/** A TLS connection through AcornSSL. */
++class SecureConnection {
++public:
++	~SecureConnection() { this->Close(); }
++
++	/**
++	 * Start connecting. The connection and handshake continue in the
++	 * background; Read() and Write() return TryAgain until they're done.
++	 * @param host Host name, for the certificate check and SNI.
++	 * @param address Address to connect to.
++	 * @param address_len Size of the address.
++	 * @return Whether the connection was started.
++	 */
++	bool Open(const std::string &host, const sockaddr *address, socklen_t address_len)
++	{
++		this->host = host; // AcornSSL keeps the pointer, so the string must live as long as the session.
++
++		int handle;
++		const _kernel_oserror *e = _swix(XAcornSSL_Creat, _INR(0, 2) | _OUT(0), AF_INET, SOCK_STREAM, 0, &handle);
++		if (e != nullptr) return this->Fail("can't create a session", e);
++		this->handle = handle;
++
++		int on = 1;
++		const char *name = this->host.c_str();
++		int prompt_time = 0; // Fail on a bad certificate rather than asking; this is a background download.
++		if ((e = _swix(XAcornSSL_Ioctl, _INR(0, 2), this->handle, ACORNSSL_FIONBIO, &on)) != nullptr) return this->Fail("can't make it non-blocking", e);
++		if ((e = _swix(XAcornSSL_Setsockopt, _INR(0, 4), this->handle, SOL_SOCKET, SO_ACORNSSL_HOSTNAME, &name, 4)) != nullptr) return this->Fail("can't set the host name", e);
++		if ((e = _swix(XAcornSSL_Setsockopt, _INR(0, 4), this->handle, SOL_SOCKET, SO_ACORNSSL_PROMPTTIME, &prompt_time, 4)) != nullptr) {
++			/* Not fatal: without it, a bad certificate is shown to the user to accept or reject. */
++			Debug(net, 1, HTTP_LOG_PREFIX "can't turn the certificate prompt off: {}", e->errmess);
++		}
++
++		e = _swix(XAcornSSL_Connect, _INR(0, 2), this->handle, address, address_len);
++		if (e != nullptr) {
++			int err = SwiErrno(e);
++			if (err != DCI4_EINPROGRESS && err != DCI4_EALREADY && err != DCI4_EWOULDBLOCK) return this->Fail("can't connect", e);
++		}
++		return true;
++	}
++
++	/** Send some of \a length bytes; \a done is set to how many went. */
++	IoResult Write(const char *data, size_t length, size_t &done)
++	{
++		int written;
++		const _kernel_oserror *e = _swix(XAcornSSL_Write, _INR(0, 2) | _OUT(0), this->handle, data, (int)length, &written);
++		return this->Result(e, written, done, "sending");
++	}
++
++	/** Receive up to \a length bytes; \a done is set to how many came (0 = the peer closed). */
++	IoResult Read(char *buffer, size_t length, size_t &done)
++	{
++		int received;
++		const _kernel_oserror *e = _swix(XAcornSSL_Recv, _INR(0, 3) | _OUT(0), this->handle, buffer, (int)length, 0, &received);
++		return this->Result(e, received, done, "receiving");
++	}
++
++	void Close()
++	{
++		if (this->handle != -1) _swix(XAcornSSL_Close, _IN(0), this->handle);
++		this->handle = -1;
++	}
++
++	const std::string &GetError() const { return this->error; }
++
++private:
++	int handle = -1;
++	std::string host;
++	std::string error;
++
++	bool Fail(const char *what, const _kernel_oserror *e)
++	{
++		this->error = fmt::format("{}: {} (error &{:X})", what, e->errmess, e->errnum);
++		this->Close();
++		return false;
++	}
++
++	IoResult Result(const _kernel_oserror *e, int count, size_t &done, const char *what)
++	{
++		done = 0;
++		if (e == nullptr) {
++			done = count;
++			return IoResult::Done;
++		}
++		int err = SwiErrno(e);
++		/* Still connecting or handshaking (ENOTCONN), or nothing to do right now. */
++		if (err == DCI4_EWOULDBLOCK || err == DCI4_ENOTCONN || err == DCI4_EINPROGRESS || err == DCI4_EALREADY) return IoResult::TryAgain;
++		this->error = fmt::format("{}: {} (error &{:X})", what, e->errmess, e->errnum);
++		return IoResult::Error;
++	}
++};
++
++} // namespace
++
++#endif /* OTTD_HTTP_TRANSPORT_HEADER */
++
++static std::vector<HTTPThreadSafeCallback *> _http_callbacks;
++static std::vector<HTTPThreadSafeCallback *> _new_http_callbacks;
++static std::mutex _http_callback_mutex;
++static std::mutex _new_http_callback_mutex;
++
++/** Single HTTP request. */
++class NetworkHTTPRequest {
++public:
++	/**
++	 * Create a new HTTP request.
++	 *
++	 * @param uri      the URI to connect to (https://.../..).
++	 * @param callback the callback to send data back on.
++	 * @param data     the data we want to send. When non-empty, this will be a POST request, otherwise a GET request.
++	 */
++	NetworkHTTPRequest(const std::string &uri, HTTPCallback *callback, const std::string &data) :
++		uri(uri),
++		callback(callback),
++		data(data)
++	{
++		std::lock_guard<std::mutex> lock(_new_http_callback_mutex);
++		_new_http_callbacks.push_back(&this->callback);
++	}
++
++	~NetworkHTTPRequest()
++	{
++		std::lock_guard<std::mutex> lock(_http_callback_mutex);
++		_http_callbacks.erase(std::remove(_http_callbacks.begin(), _http_callbacks.end(), &this->callback), _http_callbacks.end());
++	}
++
++	const std::string uri; ///< URI to connect to.
++	HTTPThreadSafeCallback callback; ///< Callback to send data back on.
++	const std::string data; ///< Data to send, if any.
++};
++
++static std::thread _http_thread;
++static std::atomic<bool> _http_thread_exit = false;
++static std::queue<std::unique_ptr<NetworkHTTPRequest>> _http_requests;
++static std::mutex _http_mutex;
++static std::condition_variable _http_cv;
++
++/* static */ void NetworkHTTPSocketHandler::Connect(const std::string &uri, HTTPCallback *callback, const std::string data)
++{
++	std::lock_guard<std::mutex> lock(_http_mutex);
++	_http_requests.push(std::make_unique<NetworkHTTPRequest>(uri, callback, data));
++	_http_cv.notify_one();
++}
++
++/* static */ void NetworkHTTPSocketHandler::HTTPReceive()
++{
++	std::lock_guard<std::mutex> lock(_http_callback_mutex);
++
++	{
++		std::lock_guard<std::mutex> lock_new(_new_http_callback_mutex);
++		if (!_new_http_callbacks.empty()) {
++			/* We delay adding new callbacks, as HandleQueue() below might add a new callback. */
++			_http_callbacks.insert(_http_callbacks.end(), _new_http_callbacks.begin(), _new_http_callbacks.end());
++			_new_http_callbacks.clear();
++		}
++	}
++
++	for (auto &callback : _http_callbacks) {
++		callback->HandleQueue();
++	}
++}
++
++namespace {
++
++constexpr auto CONNECT_TIMEOUT = std::chrono::seconds(10); ///< Connection and handshake, as with curl.
++constexpr auto IDLE_TIMEOUT = std::chrono::seconds(30);    ///< No data either way for this long.
++constexpr auto POLL_INTERVAL = std::chrono::milliseconds(20);
++constexpr int MAX_REDIRECTS = 5;
++constexpr size_t READ_SIZE = 32 * 1024;
++
++/** The parts of an https:// URI we need. */
++struct Uri {
++	std::string host;
++	std::string port = "443";
++	std::string path = "/";
++};
++
++/** Split \a uri; only https:// is supported. */
++bool ParseUri(const std::string &uri, Uri &out)
++{
++	const std::string scheme = "https://";
++	if (uri.compare(0, scheme.size(), scheme) != 0) return false;
++
++	size_t host_start = scheme.size();
++	size_t path_start = uri.find('/', host_start);
++	std::string authority = uri.substr(host_start, path_start == std::string::npos ? std::string::npos : path_start - host_start);
++	out.path = path_start == std::string::npos ? "/" : uri.substr(path_start);
++
++	size_t at = authority.rfind('@');
++	if (at != std::string::npos) authority = authority.substr(at + 1);
++	size_t colon = authority.rfind(':');
++	if (colon != std::string::npos) {
++		out.port = authority.substr(colon + 1);
++		authority = authority.substr(0, colon);
++	}
++	out.host = authority;
++	return !out.host.empty() && !out.port.empty();
++}
++
++bool EqualsIgnoreCase(std::string_view a, std::string_view b)
++{
++	if (a.size() != b.size()) return false;
++	for (size_t i = 0; i < a.size(); i++) {
++		if (tolower((unsigned char)a[i]) != tolower((unsigned char)b[i])) return false;
++	}
++	return true;
++}
++
++/** Response headers we care about. */
++struct ResponseHead {
++	int status = 0;
++	bool chunked = false;
++	bool has_length = false;
++	size_t length = 0;
++	std::string location;
++};
++
++/** Parse the status line and headers (without the final blank line). */
++bool ParseHead(const std::string &head, ResponseHead &out)
++{
++	size_t line_end = head.find("\r\n");
++	std::string status_line = head.substr(0, line_end);
++	/* "HTTP/1.1 200 OK" */
++	size_t space = status_line.find(' ');
++	if (status_line.compare(0, 5, "HTTP/") != 0 || space == std::string::npos) return false;
++	out.status = atoi(status_line.c_str() + space + 1);
++	if (out.status < 100) return false;
++
++	while (line_end != std::string::npos) {
++		size_t start = line_end + 2;
++		line_end = head.find("\r\n", start);
++		std::string line = head.substr(start, line_end == std::string::npos ? std::string::npos : line_end - start);
++		size_t colon = line.find(':');
++		if (colon == std::string::npos) continue;
++		std::string name = line.substr(0, colon);
++		size_t value_start = line.find_first_not_of(" \t", colon + 1);
++		std::string value = value_start == std::string::npos ? "" : line.substr(value_start);
++		while (!value.empty() && (value.back() == ' ' || value.back() == '\t')) value.pop_back();
++
++		if (EqualsIgnoreCase(name, "Content-Length")) {
++			out.has_length = true;
++			out.length = strtoul(value.c_str(), nullptr, 10);
++		} else if (EqualsIgnoreCase(name, "Transfer-Encoding")) {
++			/* The last coding listed is the one applied last; only "chunked" is expected. */
++			out.chunked = value.size() >= 7 && EqualsIgnoreCase(std::string_view(value).substr(value.size() - 7), "chunked");
++		} else if (EqualsIgnoreCase(name, "Location")) {
++			out.location = value;
++		}
++	}
++	return true;
++}
++
++/** Decodes a chunked body, passing the data on as it comes. */
++class ChunkedDecoder {
++public:
++	/**
++	 * Feed some bytes of the body.
++	 * @return false on a malformed body.
++	 */
++	template <typename Deliver>
++	bool Feed(const char *data, size_t length, Deliver deliver)
++	{
++		while (length > 0 && this->state != State::Finished) {
++			switch (this->state) {
++				case State::Size:
++				case State::Trailer: {
++					/* Collect a line: a chunk size, or a trailer line. */
++					char c = *data++;
++					length--;
++					if (c != '\n') {
++						if (this->line.size() > 1024) return false;
++						this->line += c;
++						break;
++					}
++					if (!this->line.empty() && this->line.back() == '\r') this->line.pop_back();
++					if (this->state == State::Trailer) {
++						if (this->line.empty()) this->state = State::Finished;
++					} else {
++						char *end;
++						this->remaining = strtoul(this->line.c_str(), &end, 16); // Anything after ';' is an extension.
++						if (end == this->line.c_str()) return false;
++						this->state = this->remaining == 0 ? State::Trailer : State::Data;
++					}
++					this->line.clear();
++					break;
++				}
++
++				case State::Data: {
++					size_t n = std::min(length, this->remaining);
++					deliver(data, n);
++					data += n;
++					length -= n;
++					this->remaining -= n;
++					if (this->remaining == 0) this->state = State::DataEnd;
++					break;
++				}
++
++				case State::DataEnd:
++					/* The CRLF after the chunk's data. */
++					if (*data == '\n') this->state = State::Size;
++					else if (*data != '\r') return false;
++					data++;
++					length--;
++					break;
++
++				case State::Finished:
++					break;
++			}
++		}
++		return true;
++	}
++
++	bool IsFinished() const { return this->state == State::Finished; }
++
++private:
++	enum class State { Size, Data, DataEnd, Trailer, Finished };
++	State state = State::Size;
++	size_t remaining = 0;
++	std::string line;
++};
++
++/** Outcome of one HTTP exchange. */
++enum class ExchangeResult {
++	Finished,   ///< The whole body was delivered.
++	Redirected, ///< The server sent us elsewhere; see \a location.
++	Failed,     ///< Error, cancellation or a non-2xx status.
++};
++
++bool IsCancelled(const NetworkHTTPRequest &request)
++{
++	return request.callback.cancelled || _http_thread_exit;
++}
++
++/**
++ * One request/response over one connection.
++ * @param request The request (for its callback and cancellation).
++ * @param uri Where to send it.
++ * @param post Whether to send the request's data as a POST.
++ * @param location Set to the redirect target on ExchangeResult::Redirected.
++ * @param status Set to the HTTP status, if one arrived.
++ */
++ExchangeResult Exchange(NetworkHTTPRequest &request, const Uri &uri, bool post, std::string &location, int &status)
++{
++	/* Only IPv4 for now: AcornSSL sessions are created as AF_INET. */
++	addrinfo hints{};
++	hints.ai_family = AF_INET;
++	hints.ai_socktype = SOCK_STREAM;
++	addrinfo *addresses = nullptr;
++	if (getaddrinfo(uri.host.c_str(), uri.port.c_str(), &hints, &addresses) != 0 || addresses == nullptr) {
++		Debug(net, 0, HTTP_LOG_PREFIX "can't find the address of {}", uri.host);
++		return ExchangeResult::Failed;
++	}
++
++	SecureConnection connection;
++	bool opened = connection.Open(uri.host, addresses->ai_addr, addresses->ai_addrlen);
++	freeaddrinfo(addresses);
++	if (!opened) {
++		Debug(net, 0, HTTP_LOG_PREFIX "{}: {}", uri.host, connection.GetError());
++		return ExchangeResult::Failed;
++	}
++
++	std::string message = fmt::format("{} {} HTTP/1.1\r\nHost: {}\r\nUser-Agent: OpenTTD/{}\r\nAccept-Encoding: identity\r\nConnection: close\r\n",
++			post ? "POST" : "GET", uri.path, uri.port == "443" ? uri.host : uri.host + ":" + uri.port, GetNetworkRevisionString());
++	if (post) {
++		/* When the payload starts with a '{', it is a JSON payload. */
++		message += fmt::format("Content-Type: {}\r\nContent-Length: {}\r\n",
++				request.data.starts_with("{") ? "application/json" : "application/x-www-form-urlencoded", request.data.size());
++	}
++	message += "\r\n";
++	if (post) message += request.data;
++
++	bool connected = false; // Until something has gone through, the connect timeout applies.
++	auto last_activity = Clock::now();
++	auto timed_out = [&]() {
++		return Clock::now() - last_activity > (connected ? std::chrono::duration_cast<Clock::duration>(IDLE_TIMEOUT) : std::chrono::duration_cast<Clock::duration>(CONNECT_TIMEOUT));
++	};
++
++	/* Send the request. */
++	size_t sent = 0;
++	while (sent < message.size()) {
++		if (IsCancelled(request)) return ExchangeResult::Failed;
++		size_t done;
++		switch (connection.Write(message.data() + sent, message.size() - sent, done)) {
++			case IoResult::Done:
++				sent += done;
++				connected = true;
++				last_activity = Clock::now();
++				break;
++			case IoResult::TryAgain:
++				if (timed_out()) {
++					Debug(net, 0, HTTP_LOG_PREFIX "{}: timed out {}", uri.host, connected ? "sending" : "connecting");
++					return ExchangeResult::Failed;
++				}
++				std::this_thread::sleep_for(POLL_INTERVAL);
++				break;
++			case IoResult::Error:
++				Debug(net, 0, HTTP_LOG_PREFIX "{}: {}", uri.host, connection.GetError());
++				return ExchangeResult::Failed;
++		}
++	}
++
++	/* Read the response. */
++	std::string head;
++	bool have_head = false;
++	ResponseHead response;
++	ChunkedDecoder chunked;
++	size_t body_received = 0;
++
++	auto deliver = [&](const char *data, size_t length) {
++		if (length == 0) return;
++		std::unique_ptr<char[]> buffer = std::make_unique<char[]>(length);
++		memcpy(buffer.get(), data, length);
++		request.callback.OnReceiveData(std::move(buffer), length);
++	};
++
++	/* Handle body bytes; returns false on a malformed body. */
++	auto body = [&](const char *data, size_t length) -> bool {
++		if (response.chunked) return chunked.Feed(data, length, deliver);
++		if (response.has_length) length = std::min(length, response.length - body_received);
++		body_received += length;
++		deliver(data, length);
++		return true;
++	};
++	auto body_complete = [&]() {
++		if (response.chunked) return chunked.IsFinished();
++		return response.has_length && body_received >= response.length;
++	};
++
++	std::unique_ptr<char[]> buffer = std::make_unique<char[]>(READ_SIZE);
++	for (;;) {
++		if (IsCancelled(request)) return ExchangeResult::Failed;
++		if (have_head && body_complete()) return ExchangeResult::Finished;
++
++		size_t done;
++		IoResult result = connection.Read(buffer.get(), READ_SIZE, done);
++		if (result == IoResult::Error) {
++			Debug(net, 0, HTTP_LOG_PREFIX "{}: {}", uri.host, connection.GetError());
++			return ExchangeResult::Failed;
++		}
++		if (result == IoResult::TryAgain) {
++			if (timed_out()) {
++				Debug(net, 0, HTTP_LOG_PREFIX "{}: timed out waiting for the response", uri.host);
++				return ExchangeResult::Failed;
++			}
++			std::this_thread::sleep_for(POLL_INTERVAL);
++			continue;
++		}
++		last_activity = Clock::now();
++		connected = true;
++
++		if (done == 0) {
++			/* The server closed the connection. That ends a body without a length. */
++			if (have_head && !response.chunked && !response.has_length) return ExchangeResult::Finished;
++			Debug(net, 0, HTTP_LOG_PREFIX "{}: connection closed before the end of the response", uri.host);
++			return ExchangeResult::Failed;
++		}
++		Debug(net, 6, HTTP_LOG_PREFIX "received {} bytes", done);
++
++		const char *data = buffer.get();
++		size_t length = done;
++		if (!have_head) {
++			head.append(data, length);
++			size_t end;
++			for (;;) {
++				end = head.find("\r\n\r\n");
++				if (end == std::string::npos) break;
++				if (!ParseHead(head.substr(0, end), response)) {
++					Debug(net, 0, HTTP_LOG_PREFIX "{}: not an HTTP response", uri.host);
++					return ExchangeResult::Failed;
++				}
++				status = response.status;
++				if (response.status >= 200) break;
++				/* An interim response (e.g. 100 Continue): skip it; the real one follows. */
++				head.erase(0, end + 4);
++				response = ResponseHead();
++			}
++			if (end == std::string::npos) {
++				if (head.size() > 64 * 1024) {
++					Debug(net, 0, HTTP_LOG_PREFIX "{}: response headers too long", uri.host);
++					return ExchangeResult::Failed;
++				}
++				continue;
++			}
++			have_head = true;
++			Debug(net, 3, HTTP_LOG_PREFIX "{}: status {}", uri.host, response.status);
++
++			if (response.status >= 300 && response.status < 400 && !response.location.empty()) {
++				location = response.location;
++				return ExchangeResult::Redirected;
++			}
++			if (response.status < 200 || response.status >= 300) {
++				/* No need to be verbose about rate limiting. */
++				Debug(net, response.status == HTTP_429_TOO_MANY_REQUESTS ? 1 : 0, HTTP_LOG_PREFIX "request failed: status_code: {}", response.status);
++				return ExchangeResult::Failed;
++			}
++
++			/* Whatever followed the headers is the start of the body. */
++			std::string rest = head.substr(end + 4);
++			if (!body(rest.data(), rest.size())) {
++				Debug(net, 0, HTTP_LOG_PREFIX "{}: malformed chunked data", uri.host);
++				return ExchangeResult::Failed;
++			}
++			continue;
++		}
++
++		if (!body(data, length)) {
++			Debug(net, 0, HTTP_LOG_PREFIX "{}: malformed chunked data", uri.host);
++			return ExchangeResult::Failed;
++		}
++	}
++}
++
++/** Resolve a redirect target against the URI it came from. */
++std::string ResolveLocation(const Uri &from, const std::string &location)
++{
++	if (location.find("://") != std::string::npos) return location;
++	std::string base = "https://" + from.host + (from.port == "443" ? "" : ":" + from.port);
++	if (!location.empty() && location[0] == '/') return base + location;
++	/* Relative to the current path's directory. */
++	return base + from.path.substr(0, from.path.rfind('/') + 1) + location;
++}
++
++/** Carry out one request, following redirects, and report the outcome. */
++void PerformRequest(NetworkHTTPRequest &request)
++{
++	std::string uri_string = request.uri;
++	bool post = !request.data.empty();
++
++	for (int redirects = 0; ; redirects++) {
++		Uri uri;
++		if (!ParseUri(uri_string, uri)) {
++			Debug(net, 0, HTTP_LOG_PREFIX "only https:// is supported: {}", uri_string);
++			request.callback.OnFailure();
++			return;
++		}
++
++		std::string location;
++		int status = 0;
++		switch (Exchange(request, uri, post, location, status)) {
++			case ExchangeResult::Finished:
++				Debug(net, 1, "HTTP request succeeded");
++				request.callback.OnReceiveData(nullptr, 0);
++				return;
++
++			case ExchangeResult::Failed:
++				request.callback.OnFailure();
++				return;
++
++			case ExchangeResult::Redirected:
++				if (redirects == MAX_REDIRECTS) {
++					Debug(net, 0, HTTP_LOG_PREFIX "too many redirects");
++					request.callback.OnFailure();
++					return;
++				}
++				/* As curl does: 301, 302 and 303 turn a POST into a GET; 307 and 308 keep it. */
++				if (status == 301 || status == 302 || status == 303) post = false;
++				uri_string = ResolveLocation(uri, location);
++				Debug(net, 3, HTTP_LOG_PREFIX "redirected to {}", uri_string);
++				break;
++		}
++	}
++}
++
++} // namespace
++
++void HttpThread()
++{
++	for (;;) {
++		std::unique_lock<std::mutex> lock(_http_mutex);
++
++		/* Wait for a new request. */
++		while (_http_requests.empty() && !_http_thread_exit) {
++			_http_cv.wait(lock);
++		}
++		if (_http_thread_exit) break;
++
++		std::unique_ptr<NetworkHTTPRequest> request = std::move(_http_requests.front());
++		_http_requests.pop();
++
++		/* Release the lock, as we will take a while to process the request. */
++		lock.unlock();
++
++		PerformRequest(*request);
++
++		/* Wait till the callback tells us all data is dequeued, or _http_thread_exit has been set. */
++		request->callback.WaitTillEmptyOrCondition([]() -> bool {
++			return _http_thread_exit;
++		});
++	}
++}
++
++void NetworkHTTPInitialize()
++{
++	_http_thread_exit = false;
++	StartNewThread(&_http_thread, "ottd:http", &HttpThread);
++}
++
++void NetworkHTTPUninitialize()
++{
++	_http_thread_exit = true;
++
++	/* Ensure the callbacks are handled. This is mostly needed as we send
++	 * a survey just before close, and that might be pending here. */
++	NetworkHTTPSocketHandler::HTTPReceive();
++
++	{
++		std::lock_guard<std::mutex> lock(_http_mutex);
++		_http_cv.notify_one();
++	}
++
++	if (_http_thread.joinable()) {
++		_http_thread.join();
++	}
++}

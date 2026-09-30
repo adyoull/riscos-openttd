@@ -43,6 +43,12 @@ IfThere <OpenTTD$Dir>.SoundFont Then Set OpenTTD$Music -m midisynth
 If "<MIDISynth$SoundFont>"<>"" Then IfThere <MIDISynth$SoundFont> Then Set OpenTTD$Music -m midisynth
 If "<OpenTTD$Sound>"="-s null" Then Set OpenTTD$Music -m null
 
+| --- Online content ---------------------------------------------------
+| Downloads from the online content service go over HTTPS through
+| AcornSSL (part of RISC OS 5). Without it the game uses its own,
+| slower download route.
+RMEnsure AcornSSL 0.00 IfThere System:Modules.Network.URL.AcornSSL Then RMLoad System:Modules.Network.URL.AcornSSL
+
 | --- Memory ---------------------------------------------------------
 | The C heap lives in a dynamic area called "OpenTTD Heap" (up to 512MB),
 | which is removed when the game quits.

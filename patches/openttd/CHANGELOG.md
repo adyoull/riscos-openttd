@@ -3,6 +3,30 @@
 Changes made by the patches in `14.1/` to OpenTTD 14.1, newest first.
 See [PORTING-NOTES](../../docs/PORTING-NOTES.md) for more detail.
 
+## 2026-09-30 (HTTPS through AcornSSL)
+
+### New `14-https-acornssl.patch`
+- `src/network/core/http_riscos.cpp`: OpenTTD's HTTP interface
+  (`NetworkHTTPSocketHandler`) for RISC OS, built instead of
+  `http_none.cpp` (CMake `CONDITION RISCOS`). Like the curl version it runs
+  requests on an `ottd:http` thread and hands data back through
+  `HTTPThreadSafeCallback`.
+- HTTPS only, through AcornSSL: `AcornSSL_Creat`, non-blocking (FIONBIO),
+  `SO_ACORNSSL_HOSTNAME` (certificate name check and SNI),
+  `SO_ACORNSSL_PROMPTTIME` 0 (a bad certificate fails the request instead
+  of asking; the content download then falls back to OpenTTD's TCP
+  route), `AcornSSL_Connect`, then `Write`/`Recv`, which report ENOTCONN
+  while the handshake runs. No SWI blocks, so other threads and the
+  desktop keep running.
+- HTTP/1.1 with `Connection: close`: GET, or POST with a JSON or form
+  Content-Type; bodies by Content-Length, chunked or connection close;
+  1xx responses skipped; up to 5 redirects (301/302/303 turn POST into GET,
+  as curl does); non-2xx fails; 10 s to connect, 30 s idle; cancelling is
+  checked every 20 ms. IPv4 only.
+- Host test `tools/http-test/run.sh`: the same file built for Linux with an
+  OpenSSL stand-in for AcornSSL, against a local HTTPS server, with reads
+  and writes cut to 1, 7, 997 and 100,000 bytes.
+
 ## 2026-09-27 (startup)
 
 ### The desktop no longer freezes while the game loads

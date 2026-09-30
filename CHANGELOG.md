@@ -8,6 +8,10 @@ SDL2 is listed in more detail here:
 
 ## Unreleased
 
+- Online content downloads over HTTPS through AcornSSL (part of RISC OS 5),
+  instead of only OpenTTD's slower fallback route. Certificates are
+  checked by AcornSSL; a bad one isn't prompted for, the download just
+  uses the fallback. `!Run` loads AcornSSL if it isn't already.
 - Relinked with UnixLib 5.0.3 (riscos-unixlib `v5.0.3`). The timer that
   switches between the game's threads could fire while another desktop
   task was running and crash that task. It now runs from the new
