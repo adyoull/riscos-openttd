@@ -1,19 +1,27 @@
-Report the RISC OS error when the game stops on one.
+Report crashes on RISC OS in OpenTTDlog, with a backtrace.
 
-UnixLib turns a RISC OS error (SIGOSERROR) and a processor exception such
-as a data abort (SIGEMT, "EMT trap") into a signal. Its report names the
-signal and prints a backtrace, but for SIGEMT it leaves out the error
-itself, which says what happened and where: "abort on data transfer at
-&...", for example, shows whether the fault was in the game or in a module.
-- On RISC OS, crashlog_unix.cpp catches SIGEMT and SIGOSERROR, prints
-  "RISC OS error &<number>: <message>", then UnixLib's usual report.
-- It ends with _exit, so a still-running thread no longer adds
-  "terminate called without an active exception" to the log.
+On RISC OS nothing useful about a crash reached the log:
+- UnixLib turns a processor exception such as a data abort into SIGEMT
+  ("EMT trap") and a RISC OS error into SIGOSERROR. Its report names the
+  signal and prints a backtrace, but for SIGEMT it leaves out the error
+  itself, which says what happened and where: "abort on data transfer at
+  &...", for example, shows whether the fault was in the game or in a
+  module.
+- For the other crash signals (SIGSEGV, SIGABRT from a fatal error, ...)
+  OpenTTD's own handler runs. It has no backtrace without glibc, and it
+  prints to stdout, which !Run doesn't keep.
+So in crashlog_unix.cpp, on RISC OS:
+- the crash handler first writes "RISC OS error &<number>: <message>" (if
+  there is one) and UnixLib's backtrace of every thread to stderr, then
+  carries on with OpenTTD's crash log as before;
+- SIGEMT and SIGOSERROR get the same report and then stop with _exit, so a
+  still-running thread doesn't add "terminate called without an active
+  exception".
 
 For OpenTTD 14.1. See docs/PORTING-NOTES.md in riscos-openttd.
 
 diff --git a/src/os/unix/crashlog_unix.cpp b/src/os/unix/crashlog_unix.cpp
-index 7ab97a7..656a734 100644
+index 7ab97a7..2609bc4 100644
 --- a/src/os/unix/crashlog_unix.cpp
 +++ b/src/os/unix/crashlog_unix.cpp
 @@ -35,6 +35,11 @@
@@ -28,29 +36,59 @@ index 7ab97a7..656a734 100644
  #include "../../safeguards.h"
  
  /** The signals we want our crash handler to handle. */
-@@ -214,9 +219,33 @@ static void CDECL HandleCrash(int signum)
- 	_exit(2);
+@@ -176,6 +181,38 @@ static void CDECL HandleInternalCrash([[maybe_unused]] int signum)
+ 	longjmp(CrashLogUnix::current->internal_fault_jmp_buf, 1);
  }
  
 +#if defined(__riscos__)
 +/**
-+ * RISC OS: UnixLib turns a RISC OS error (SIGOSERROR) and a processor
-+ * exception such as a data abort (SIGEMT) into a signal. Its own report names
-+ * the signal and gives a backtrace, but leaves out the error itself, which
-+ * says what went wrong and where (for example "Internal error: abort on data
-+ * transfer at &..."). Print the error first, then UnixLib's usual report.
++ * RISC OS: write the RISC OS error, if there is one, and UnixLib's backtrace
++ * of every thread to stderr (OpenTTDlog). UnixLib's own report leaves the
++ * error out ("abort on data transfer at &...", which says where the fault
++ * was), and OpenTTD's crash log has no backtrace here and goes to stdout,
++ * which !Run doesn't keep.
 + * @param signum The signal.
 + */
-+static void CDECL HandleRiscOsError(int signum)
++static void RiscOsCrashReport(int signum)
 +{
 +	const _kernel_oserror *e = _kernel_last_oserror();
 +	if (e != nullptr) fmt::print(stderr, "\nRISC OS error &{:X}: {}\n", static_cast<uint32_t>(e->errnum), e->errmess);
 +	__write_backtrace(signum);
++	fflush(stderr);
++}
++
++/**
++ * RISC OS: a processor exception (SIGEMT) or a RISC OS error (SIGOSERROR).
++ * Report it and stop; OpenTTD's crash log isn't tried, as memory may be
++ * damaged.
++ * @param signum The signal.
++ */
++static void CDECL HandleRiscOsError(int signum)
++{
++	RiscOsCrashReport(signum);
 +	/* _exit, not exit: static destructors (a joinable std::thread, say) would
 +	 * only add "terminate called" to the report. */
 +	_exit(2);
 +}
 +#endif
++
+ /**
+  * Entry point for the crash handler.
+  *
+@@ -183,6 +220,9 @@ static void CDECL HandleInternalCrash([[maybe_unused]] int signum)
+  */
+ static void CDECL HandleCrash(int signum)
+ {
++#if defined(__riscos__)
++	if (CrashLogUnix::current == nullptr) RiscOsCrashReport(signum);
++#endif
+ 	if (CrashLogUnix::current != nullptr) {
+ 		CrashLog::AfterCrashLogCleanup();
+ 		_exit(2);
+@@ -214,9 +254,14 @@ static void CDECL HandleCrash(int signum)
+ 	_exit(2);
+ }
+ 
 +
  /* static */ void CrashLog::InitialiseCrashLog()
  {

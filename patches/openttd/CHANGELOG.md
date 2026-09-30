@@ -20,6 +20,10 @@ See [PORTING-NOTES](../../docs/PORTING-NOTES.md) for more detail.
   says where the fault was. The handler ends with `_exit`, so a running
   `std::thread` no longer adds "terminate called without an active
   exception".
+- The other crash signals (SIGSEGV, SIGABRT after a fatal error such as
+  "Out of memory", ...) write the same error line and backtrace to stderr
+  before OpenTTD's own crash log, which has no backtrace on RISC OS and
+  goes to stdout (not kept by `!Run`).
 
 ## 2026-09-30 (HTTPS through AcornSSL)
 
