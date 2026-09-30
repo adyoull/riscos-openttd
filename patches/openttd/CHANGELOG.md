@@ -35,6 +35,9 @@ See [PORTING-NOTES](../../docs/PORTING-NOTES.md) for more detail.
   "Out of memory", ...) write the same error line and backtrace to stderr
   before OpenTTD's own crash log, which has no backtrace on RISC OS and
   goes to stdout (not kept by `!Run`).
+- `src/core/alloc_func.cpp`: before a fatal "Out of memory" a backtrace is
+  written from where the allocation failed. The crash handler's own
+  backtrace stops at the signal frame of the abort() that follows.
 
 ## 2026-09-30 (HTTPS through AcornSSL)
 

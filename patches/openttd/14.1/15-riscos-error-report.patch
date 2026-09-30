@@ -18,8 +18,60 @@ So in crashlog_unix.cpp, on RISC OS:
   still-running thread doesn't add "terminate called without an active
   exception".
 
+Before a fatal "Out of memory" (MallocError/ReallocError in
+core/alloc_func.cpp) a backtrace is written too: the crash handler's
+backtrace can't get past the signal frame of the abort() that follows, so
+only this one shows who asked for the memory.
+
 For OpenTTD 14.1. See docs/PORTING-NOTES.md in riscos-openttd.
 
+diff --git a/src/core/alloc_func.cpp b/src/core/alloc_func.cpp
+index 00f9ecd..25178a9 100644
+--- a/src/core/alloc_func.cpp
++++ b/src/core/alloc_func.cpp
+@@ -11,14 +11,35 @@
+ 
+ #include "../error_func.h"
+ 
++#if defined(__riscos__)
++#	include <unixlib/local.h>
++#endif
++
+ #include "../safeguards.h"
+ 
++/**
++ * RISC OS: write a backtrace to stderr (OpenTTDlog) before a fatal
++ * allocation error. The crash handler's backtrace stops at the signal frame
++ * of the abort() that follows, so it can't show who asked for the memory;
++ * here the caller is still on the stack.
++ * @param size number of bytes we tried to allocate
++ */
++static void AllocErrorBacktrace([[maybe_unused]] size_t size)
++{
++#if defined(__riscos__)
++	fmt::print(stderr, "\nCould not allocate {} bytes. Where it was asked for:\n", size);
++	__write_backtrace(0);
++	fflush(stderr);
++#endif
++}
++
+ /**
+  * Function to exit with an error message after malloc() or calloc() have failed
+  * @param size number of bytes we tried to allocate
+  */
+ [[noreturn]] void MallocError(size_t size)
+ {
++	AllocErrorBacktrace(size);
+ 	FatalError("Out of memory. Cannot allocate {} bytes", size);
+ }
+ 
+@@ -28,5 +49,6 @@
+  */
+ [[noreturn]] void ReallocError(size_t size)
+ {
++	AllocErrorBacktrace(size);
+ 	FatalError("Out of memory. Cannot reallocate {} bytes", size);
+ }
 diff --git a/src/os/unix/crashlog_unix.cpp b/src/os/unix/crashlog_unix.cpp
 index 7ab97a7..2609bc4 100644
 --- a/src/os/unix/crashlog_unix.cpp

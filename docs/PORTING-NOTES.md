@@ -25,7 +25,7 @@ applies on its own. `build/package.sh` joins them into one
 | 12 | `src/blitter/32bpp_neon.cpp/.hpp`, `src/blitter/CMakeLists.txt` | Optional `32bpp-neon` blitter: a NEON port of the SSE blitter, bit-identical to `32bpp-sse4`. Only in NEON builds; chosen with `-b 32bpp-neon` (`OpenTTD$Blitter` in `!Run`) |
 | 13 | `src/random_access_file.cpp/.h`, `src/gfxinit.cpp` | Faster startup: 32 KB file buffer that seeks inside itself, 32 KB MD5 reads, and the desktop is polled while files load (`RiscOsKeepDesktopAlive()` in `sdl2_v.cpp`) |
 | 14 | `src/network/core/http_riscos.cpp`, `src/network/core/CMakeLists.txt` | HTTPS for online content (and the opt-in survey) through the AcornSSL module instead of libcurl: a small HTTP/1.1 client on its own thread, non-blocking throughout. Tested on Linux with `tools/http-test/run.sh` |
-| 15 | `src/os/unix/crashlog_unix.cpp` | Crashes write the RISC OS error (for an abort, where it happened) and UnixLib's backtrace of every thread to `OpenTTDlog` |
+| 15 | `src/os/unix/crashlog_unix.cpp`, `src/core/alloc_func.cpp` | Crashes write the RISC OS error (for an abort, where it happened) and UnixLib's backtrace of every thread to `OpenTTDlog`; a fatal "Out of memory" also writes a backtrace from where it happened |
 
 ### Moving to a newer OpenTTD
 
