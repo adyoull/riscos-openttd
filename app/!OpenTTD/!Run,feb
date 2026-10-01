@@ -50,7 +50,8 @@ If "<OpenTTD$Sound>"="-s null" Then Set OpenTTD$Music -m null
 RMEnsure AcornSSL 0.00 IfThere System:Modules.Network.URL.AcornSSL Then RMLoad System:Modules.Network.URL.AcornSSL
 
 | --- Memory ---------------------------------------------------------
-| The C heap lives in a dynamic area called "OpenTTD Heap" (up to 512MB),
+| The C heap lives in a dynamic area called "OpenTTD Heap" (RISC OS 5
+| allows a dynamic area 128MB at most),
 | which is removed when the game quits.
 WimpSlot -min 32768K -max 32768K
 | --- Display ---------------------------------------------------------

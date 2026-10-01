@@ -12,6 +12,17 @@ See [PORTING-NOTES](../../docs/PORTING-NOTES.md) for more detail.
   mbedTLS `-0x7780`), and every download fell back to the TCP route. R3 is
   now the name itself, as in FFmpeg's and YTDL's AcornSSL code.
 
+### The heap can't be more than 128 MB: smaller sprite cache
+- Measured on a Pi 4: RISC OS 5 gives any dynamic area made with
+  OS_DynamicArea 0 a maximum of 128 MB, whatever is asked for (512 MB,
+  1 GB, any flags). "OpenTTD Heap" is therefore 128 MB at most, not 512 MB.
+- `07-sprite-cache.patch`: the cap is 64 MiB (was 128 MiB). A 128 MiB cache
+  never fitted beside everything else, and each failed try left a 128 MiB
+  `mmap#N` area behind (UnixLib's malloc falls back to mmap when the heap
+  can't grow). `06-heap-dynamic-area.patch`: comment corrected.
+- A heap spread over several areas is UnixLib's to do: handoff
+  `handoffs/2026-10-01-unixlib-heap-over-128mb.md` (not in git).
+
 ### New `16-map-memory-check.patch`
 - A 4096x4096 scenario stopped the game: "Out of memory. Cannot allocate
   134217728 bytes" from `Map::Allocate` (backtrace: MAPSChunkHandler::Load

@@ -16,6 +16,9 @@ SDL2 is listed in more detail here:
   Tar files were given the Tar filetype, so SparkFS opened them as
   archives and its Tar module crashed. OpenTTD now gives its tar files the
   Data filetype before reading them.
+- The graphics cache is 64MB (was 128MB). RISC OS 5 limits the game's
+  memory area to 128MB, so 128MB never fitted, and each failed try left
+  a 128MB memory area behind.
 - Loading a map too big for the free memory (a 4096x4096 scenario, say)
   now says so and the game carries on, instead of the game stopping with
   "Out of memory".
