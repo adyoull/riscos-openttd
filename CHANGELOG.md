@@ -21,8 +21,9 @@ SDL2 is listed in more detail here:
   "Out of memory".
 - If the game crashes, `OpenTTDlog` now has the RISC OS error message
   (which says where the fault was) and a backtrace of every thread.
-- Relinked with UnixLib 5.0.3.1-rc4 (riscos-unixlib `v5.0.3.1-rc4`, a
-  pre-release). RISC OS 5 limits each memory area to 128MB, so the game's
+- Relinked with UnixLib 5.0.3.1-rc8 (riscos-unixlib `v5.0.3.1-rc8`, a
+  pre-release; since rc4 it also fixes `fork()` and `_exit()`, which the
+  game doesn't use). RISC OS 5 limits each memory area to 128MB, so the game's
   memory used to stop at 128MB however much was free: the graphics cache
   was cut to 64MB at every start and 4096x4096 maps couldn't load. It now
   carries on in more areas ("OpenTTD Heap 2", "3"...) placed straight

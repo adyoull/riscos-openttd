@@ -36,7 +36,7 @@ This script:
 
 - applies `patches/gccsdk/gccsdk-toolchain.diff` and
   `patches/unixlib/unixlib-riscos.diff` (a copy of the patch from
-  riscos-unixlib's UnixLib 5.0.3.1-rc4 pre-release, where all UnixLib changes are
+  riscos-unixlib's UnixLib 5.0.3.1-rc8 pre-release, where all UnixLib changes are
   now made; rebuild UnixLib from clean when it changes);
 - builds the GCC 4.7.4 base toolchain (`gcc4/build-world`);
 - builds GCC 10.2 for `arm-riscos-gnueabihf` with the autobuilder, cross

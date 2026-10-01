@@ -12,6 +12,11 @@ See [PORTING-NOTES](../../docs/PORTING-NOTES.md) for more detail.
   mbedTLS `-0x7780`), and every download fell back to the TCP route. R3 is
   now the name itself, as in FFmpeg's and YTDL's AcornSSL code.
 
+### UnixLib 5.0.3.1-rc8
+- Relinked; `patches/unixlib/unixlib-riscos.diff` is the rc8 copy. Since
+  rc4: fork() fixes for EABI programs (rc5, rc6) and `_exit(n)` exiting
+  with code n (rc7). The crash handlers' `_exit(2)` now really exits with 2.
+
 ### UnixLib 5.0.3.1-rc4: the heap past 128 MB; sprite cache back to 128 MiB
 - rc4 continues the heap in areas placed straight after the first, so one
   block can be bigger than 128 MB (passed on the Pi with a 200 MB block).
