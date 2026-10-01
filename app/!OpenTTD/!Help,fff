@@ -19,7 +19,7 @@ Requirements
  * SharedUnixLibrary 1.16 or later.
  * The PThreadTicker module is included (!OpenTTD.PThrTicker) and
    loaded by !Run; a newer copy in !System is used instead if you have
-   one. It comes from UnixLib 5.0.1 and makes the game's threads safe
+   one. It (0.03) comes from UnixLib 5.0.3.1 and makes the game's threads safe
    alongside other desktop tasks.
  * For sound, the SharedSound (1.07 or later, part of RISC OS 5),
    StreamManager (0.03 or later) and SharedSoundBuffer (0.07 or later)

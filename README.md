@@ -27,7 +27,7 @@ filetypes are kept.
   or RPCEmu.
 - The `ARMEABISupport` module.
 - `SharedUnixLibrary` 1.16 or later.
-- The `PThreadTicker` module from UnixLib 5.0.1. It's included in
+- The `PThreadTicker` module (0.03, from UnixLib 5.0.3.1). It's included in
   `!OpenTTD` and loaded by `!Run`.
 - For sound: the SharedSound (1.07 or later, part of RISC OS 5),
   StreamManager (0.03 or later) and SharedSoundBuffer (0.07 or later)

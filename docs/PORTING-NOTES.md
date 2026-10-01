@@ -131,7 +131,7 @@ full screen only.
 
 UnixLib changes are now made in the separate riscos-unixlib repository;
 `patches/unixlib/unixlib-riscos.diff` is a copy of its
-`patches/unixlib-riscos.diff` (pre-release UnixLib 5.0.3.1-rc8, tag `v5.0.3.1-rc8`;
+`patches/unixlib-riscos.diff` (release UnixLib 5.0.3.1, tag `v5.0.3.1`;
 earlier `22511f2`). The changes OpenTTD
 needed first:
 

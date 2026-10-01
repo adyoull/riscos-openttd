@@ -12,6 +12,13 @@ See [PORTING-NOTES](../../docs/PORTING-NOTES.md) for more detail.
   mbedTLS `-0x7780`), and every download fell back to the TCP route. R3 is
   now the name itself, as in FFmpeg's and YTDL's AcornSSL code.
 
+### UnixLib 5.0.3.1 (release)
+- Relinked; `patches/unixlib/unixlib-riscos.diff` is the 5.0.3.1 copy. Since
+  rc8: the thread timer keeps running through `Wimp_Poll` and threads are
+  switched as it returns (threads got no time in fast-polling SDL programs).
+  PThreadTicker 0.03 (interface version 2) shipped; `!Run` still RMEnsures
+  0.01, as UnixLib advises.
+
 ### UnixLib 5.0.3.1-rc8
 - Relinked; `patches/unixlib/unixlib-riscos.diff` is the rc8 copy. Since
   rc4: fork() fixes for EABI programs (rc5, rc6) and `_exit(n)` exiting

@@ -21,16 +21,22 @@ SDL2 is listed in more detail here:
   "Out of memory".
 - If the game crashes, `OpenTTDlog` now has the RISC OS error message
   (which says where the fault was) and a backtrace of every thread.
-- Relinked with UnixLib 5.0.3.1-rc8 (riscos-unixlib `v5.0.3.1-rc8`, a
-  pre-release; since rc4 it also fixes `fork()` and `_exit()`, which the
-  game doesn't use). RISC OS 5 limits each memory area to 128MB, so the game's
-  memory used to stop at 128MB however much was free: the graphics cache
-  was cut to 64MB at every start and 4096x4096 maps couldn't load. It now
-  carries on in more areas ("OpenTTD Heap 2", "3"...) placed straight
-  after the first, so even one block bigger than 128MB fits; they are all
-  removed when the game quits, and no "mmap" areas are left behind. PThreadTicker 0.02 is
-  included. Also from 5.0.3.1: fixes found by a review of riscos-unixlib
-  (see its release notes).
+- Relinked with UnixLib 5.0.3.1 (riscos-unixlib `v5.0.3.1`).
+  - The game's background threads (sound and others) now get time
+    while the game sits in its desktop loop. UnixLib's thread timer was
+    restarted on every `Wimp_Poll`, and SDL polls more often than it
+    fired, so those threads only ran when the main thread was busy
+    elsewhere. PThreadTicker 0.03 is included (programs built with
+    5.0.3.1 use only 0.03; with an older one loaded, the game uses its
+    own copy until the next restart).
+  - RISC OS 5 limits each memory area to 128MB, so the game's
+    memory used to stop at 128MB however much was free: the graphics cache
+    was cut to 64MB at every start and 4096x4096 maps couldn't load. It now
+    carries on in more areas ("OpenTTD Heap 2", "3"...) placed straight
+    after the first, so even one block bigger than 128MB fits; they are all
+    removed when the game quits, and no "mmap" areas are left behind.
+  - Also: fixes found by a review of riscos-unixlib, and `fork()`/`_exit()`
+    fixes the game doesn't use (see its release notes).
 - Before that, relinked with UnixLib 5.0.3 (riscos-unixlib `v5.0.3`). The timer that
   switches between the game's threads could fire while another desktop
   task was running and crash that task. It now runs from the new

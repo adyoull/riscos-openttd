@@ -14,9 +14,11 @@ RMEnsure SharedUnixLibrary 1.16 IfThere System:Modules.SharedULib Then RMLoad Sy
 RMEnsure SharedUnixLibrary 1.16 Error OpenTTD needs SharedUnixLibrary 1.16 or later. Install it with PackMan.
 RMEnsure ARMEABISupport 0 IfThere System:Modules.ARMEABISupport Then RMLoad System:Modules.ARMEABISupport
 RMEnsure ARMEABISupport 0 Error OpenTTD needs the ARMEABISupport module. Install it with PackMan.
-| PThreadTicker (from UnixLib 5.0.1) holds the code that switches the
-| game's threads, so it never runs from the game's own memory while
-| another task is paged in. A copy in !System is used if it's there.
+| PThreadTicker (0.03, from UnixLib 5.0.3.1) holds the code that switches
+| the game's threads, so it never runs from the game's own memory while
+| another task is paged in. A copy in !System is used if it's there. If an
+| older one (0.01/0.02) is already loaded, the game uses its own copy
+| instead until the next restart, which works the same.
 RMEnsure PThreadTicker 0.01 IfThere System:Modules.PThrTicker Then RMLoad System:Modules.PThrTicker
 RMEnsure PThreadTicker 0.01 RMLoad <OpenTTD$Dir>.PThrTicker
 
