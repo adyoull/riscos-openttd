@@ -12,6 +12,11 @@ See [PORTING-NOTES](../../docs/PORTING-NOTES.md) for more detail.
   mbedTLS `-0x7780`), and every download fell back to the TCP route. R3 is
   now the name itself, as in FFmpeg's and YTDL's AcornSSL code.
 
+### UnixLib 5.0.3.1-rc4: the heap past 128 MB; sprite cache back to 128 MiB
+- rc4 continues the heap in areas placed straight after the first, so one
+  block can be bigger than 128 MB (passed on the Pi with a 200 MB block).
+  `07-sprite-cache.patch`: the cap is 128 MiB again.
+
 ### The heap can't be more than 128 MB: smaller sprite cache
 - Measured on a Pi 4: RISC OS 5 gives any dynamic area made with
   OS_DynamicArea 0 a maximum of 128 MB, whatever is asked for (512 MB,

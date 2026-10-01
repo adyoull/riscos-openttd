@@ -16,19 +16,18 @@ SDL2 is listed in more detail here:
   Tar files were given the Tar filetype, so SparkFS opened them as
   archives and its Tar module crashed. OpenTTD now gives its tar files the
   Data filetype before reading them.
-- The graphics cache is 64MB (was 128MB). RISC OS 5 limits the game's
-  memory area to 128MB, so 128MB never fitted, and each failed try left
-  a 128MB memory area behind.
 - Loading a map too big for the free memory (a 4096x4096 scenario, say)
   now says so and the game carries on, instead of the game stopping with
   "Out of memory".
 - If the game crashes, `OpenTTDlog` now has the RISC OS error message
   (which says where the fault was) and a backtrace of every thread.
-- Relinked with UnixLib 5.0.3.1-rc3 (riscos-unixlib `v5.0.3.1-rc3`, a
+- Relinked with UnixLib 5.0.3.1-rc4 (riscos-unixlib `v5.0.3.1-rc4`, a
   pre-release). RISC OS 5 limits each memory area to 128MB, so the game's
-  memory used to stop at 128MB however much was free. It now carries on in
-  more areas ("OpenTTD Heap 2", "3"...), all removed when the game quits,
-  and no longer leaves "mmap" areas behind. PThreadTicker 0.02 is
+  memory used to stop at 128MB however much was free: the graphics cache
+  was cut to 64MB at every start and 4096x4096 maps couldn't load. It now
+  carries on in more areas ("OpenTTD Heap 2", "3"...) placed straight
+  after the first, so even one block bigger than 128MB fits; they are all
+  removed when the game quits, and no "mmap" areas are left behind. PThreadTicker 0.02 is
   included. Also from 5.0.3.1: fixes found by a review of riscos-unixlib
   (see its release notes).
 - Before that, relinked with UnixLib 5.0.3 (riscos-unixlib `v5.0.3`). The timer that

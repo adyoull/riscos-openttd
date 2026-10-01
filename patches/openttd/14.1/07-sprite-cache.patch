@@ -1,35 +1,33 @@
 Smaller sprite cache, allocated exactly.
 
 RISC OS doesn't overcommit memory: the default 32bpp sprite cache (512MB,
-probed as 768MB) would really be claimed. Capped at 64MB and allocated
-without the 50% over-allocation probe. The cache lives in the C heap, one
-dynamic area, and RISC OS 5 limits a dynamic area to 128MB however much is
-asked for; a 128MB cache never fitted beside everything else, and each
-failed try left a 128MB "mmap" area behind (UnixLib's fallback).
+probed as 768MB) would really be claimed. Capped at 128MB and allocated
+without the 50% over-allocation probe. (RISC OS 5 limits a dynamic area to
+128MB; with UnixLib 5.0.3.1 the heap continues in further areas placed
+straight after the first, so a 128MB block fits.)
 
 For OpenTTD 14.1. See docs/PORTING-NOTES.md in riscos-openttd.
 
 diff --git a/src/spritecache.cpp b/src/spritecache.cpp
-index 0762e90..7dda354 100644
+index 0762e90..568d84f 100644
 --- a/src/spritecache.cpp
 +++ b/src/spritecache.cpp
-@@ -974,6 +974,15 @@ static void GfxInitSpriteCache()
+@@ -974,6 +974,14 @@ static void GfxInitSpriteCache()
  	/* initialize sprite cache heap */
  	int bpp = BlitterFactory::GetCurrentBlitter()->GetScreenDepth();
  	uint target_size = (bpp > 0 ? _sprite_cache_size * bpp / 8 : 1) * 1024 * 1024;
 +#if defined(__riscos__)
 +	/* RISC OS has no memory overcommit: the default 32bpp cache (512 MiB, first
 +	 * probed as 768 MiB) would really claim that memory, and failed attempts left
-+	 * large areas allocated. The cache lives in the C heap, a dynamic area that
-+	 * RISC OS 5 limits to 128 MiB, so 128 MiB could never fit beside everything
-+	 * else; each failed try also left a 128 MiB "mmap" area behind (UnixLib's
-+	 * fallback). Cap the cache at 64 MiB. */
-+	target_size = std::min<uint>(target_size, 64 * 1024 * 1024);
++	 * large areas allocated. Cap the cache at 128 MiB. (RISC OS 5 limits a
++	 * dynamic area to 128 MiB; UnixLib 5.0.3.1 continues the heap in further
++	 * areas placed straight after it, so a block this size fits.) */
++	target_size = std::min<uint>(target_size, 128 * 1024 * 1024);
 +#endif
  
  	/* Remember 'target_size' from the previous allocation attempt, so we do not try to reach the target_size multiple times in case of failure. */
  	static uint last_alloc_attempt = 0;
-@@ -985,6 +994,14 @@ static void GfxInitSpriteCache()
+@@ -985,6 +993,14 @@ static void GfxInitSpriteCache()
  		_allocated_sprite_cache_size = target_size;
  
  		do {

@@ -16,8 +16,8 @@ applies on its own. `build/package.sh` joins them into one
 | 03 | `src/ini.cpp` | No `fdatasync` |
 | 04 | `src/stdafx.h`, `src/fileio.cpp` | No XDG directories. The home directory is `<Choices$Write>`. No lower-case retry in `FioFOpenFile` (file probing is slow on RISC OS). Tar files with the Tar filetype (&C46) get Data (&FFD) before they are read, so SparkFS doesn't treat them as images (its Tar module crashed on OpenTTD's downloads) |
 | 05 | `src/openttd.cpp` | Logs its arguments to stderr and ignores stray non-option arguments (from `!Run`) |
-| 06 | `src/os/unix/unix_main.cpp` | The C heap is a dynamic area named "OpenTTD Heap" (512MB asked for; RISC OS 5 gives a dynamic area at most 128MB) |
-| 07 | `src/spritecache.cpp` | Sprite cache capped at 64 MiB (the heap can't be more than 128 MB), and allocated without the 1.5x probe |
+| 06 | `src/os/unix/unix_main.cpp` | The C heap is a dynamic area named "OpenTTD Heap" (512MB asked for; RISC OS 5 gives a dynamic area at most 128MB, and UnixLib 5.0.3.1 continues the heap in further areas straight after it) |
+| 07 | `src/spritecache.cpp` | Sprite cache capped at 128 MiB, and allocated without the 1.5x probe |
 | 08 | `src/textfile_gui.cpp` | `GetTextfile` results are cached. Only `.txt`/`.md` are probed on RISC OS (this was a multi-second pause opening Game Options) |
 | 09 | `src/video/sdl2_v.cpp` | Memory report every 10s with `-d driver=1` (`OpenTTD$Debug` in `!Run`). `-v sdl:windowed` / `sdl:fullscreen`. Full screen toggles by recreating the window. Drawing from the game thread is off by default. `RiscOsKeepDesktopAlive()` polls the Wimp during loading |
 | 10 | `src/video/sdl2_default_v.cpp` | The RISC OS screen is XBGR8888: draw into an XRGB8888 shadow surface and swap red and blue one word at a time in `Paint()` |
@@ -125,14 +125,13 @@ full screen only.
   SoundFont won't load (for example a big SF3 that doesn't fit in memory)
   the driver still starts, logs why, and plays nothing.
 - SF2 and SF3 SoundFonts both work (midisynth 0.3.0). SF3 is decoded into
-  memory at start-up, so a large one can use much of the game's 128MB
-  heap.
+  memory at start-up, so a large one can use hundreds of MB of the heap.
 
 ## UnixLib (`patches/unixlib`)
 
 UnixLib changes are now made in the separate riscos-unixlib repository;
 `patches/unixlib/unixlib-riscos.diff` is a copy of its
-`patches/unixlib-riscos.diff` (pre-release UnixLib 5.0.3.1-rc3, tag `v5.0.3.1-rc3`;
+`patches/unixlib-riscos.diff` (pre-release UnixLib 5.0.3.1-rc4, tag `v5.0.3.1-rc4`;
 earlier `22511f2`). The changes OpenTTD
 needed first:
 
