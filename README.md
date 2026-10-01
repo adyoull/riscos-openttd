@@ -46,7 +46,8 @@ filetypes are kept.
     SharedSoundBuffer come from `ssb.zip`.)
     John Duffell's own site (now on the Internet Archive) has more details:
     <https://web.archive.org/web/20110920080106/http://www.duffell.riscos.me.uk/>.
-- About 128MB of free memory.
+- About 128MB of free memory (much more for very large maps: a 4096x4096
+  map needs about 200MB more).
 - For downloading online content (Online Content in the main menu):
   the AcornSSL module, part of RISC OS 5. `!Run` loads it. The game then
   downloads over HTTPS; without it, it uses OpenTTD's own slower route.
