@@ -20,4 +20,8 @@ mkdir -p build-host
 OPENTTD_FAST=1 "$REPO_DIR/build/configure-openttd.sh"
 ( cd build-fast && make -j"$(nproc)" openttd &&
   "$GCCSDK_INSTALL_CROSSBIN/arm-riscos-gnueabihf-strip" -o openttd-stripped openttd )
+# Check both programs (UnixLib ticker block, stack probes, no build paths).
+for b in build-ro build-fast; do
+  "$REPO_DIR/tools/check-binary.sh" "$OPENTTD_SRC/$b/openttd" "$OPENTTD_SRC/$b/openttd-stripped"
+done
 echo "Built build-ro/openttd-stripped and build-fast/openttd-stripped"

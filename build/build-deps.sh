@@ -10,6 +10,13 @@ SDLREC="$GCCSDK_SRC/autobuilder/libraries/sdl/libsdl2"
 git -C "$GCCSDK_SRC" checkout -q -- autobuilder/libraries/sdl/libsdl2
 git -C "$GCCSDK_SRC" clean -fdq -- autobuilder/libraries/sdl/libsdl2
 cp "$REPO_DIR"/gccsdk-overlay/autobuilder/libraries/sdl/libsdl2/*.p "$SDLREC/"
+# sdl2-configure.ac.simd.p (SDL's ARM SIMD/NEON blitters, only built with
+# --enable-arm-simd/--enable-arm-neon, which OpenTTD doesn't pass) is made
+# against configure.ac without the GCCSDK recipe's own configure.ac.p. With
+# both, whichever the autobuilder applies second fails (it applies the .p
+# files in directory order). Leave it out: without those options it changes
+# nothing.
+rm -f "$SDLREC/sdl2-configure.ac.simd.p"
 rm -f "$SDLREC/depends"   # khronos/oslib are not needed for the software driver
 apply_once "$GCCSDK_SRC" "$REPO_DIR/patches/gccsdk/libsdl2-setvars.diff"
 

@@ -6,6 +6,21 @@ SDL2 is listed in more detail here:
 - [OpenTTD changes](patches/openttd/CHANGELOG.md)
 - [SDL2 changes](gccsdk-overlay/autobuilder/libraries/sdl/libsdl2/CHANGELOG.md)
 
+## Unreleased
+
+- The game no longer uses all of the processor while it waits between
+  frames in a desktop window. It used C++'s `sleep_for`, which UnixLib
+  carries out by spinning; it now waits through SDL, which gives the time
+  to other desktop tasks.
+- SDL updated from riscos-mesa (`f6beba1`): switching the desktop between
+  90 and 180 dpi modes while the game is in a window keeps the picture and
+  the mouse right; after a desktop resolution change, full screen uses the
+  new desktop size; desktop-size full screen is a full window that stays a
+  desktop task.
+- `tools/check-binary.sh` (run by `build/build-openttd.sh`) checks each
+  program: UnixLib's thread ticker block matches the UnixLib built with,
+  stack probes, and no build paths.
+
 ## 14.1-riscos6 (tag `14.1.6`)
 
 Changes since 14.1-riscos5.

@@ -11,6 +11,17 @@ From here on the `.p` files are an unmodified copy of riscos-mesa's
 changes are recorded there. This file is the history of the OpenTTD copy
 up to that point.
 
+- 2026-10-03: copied again from riscos-mesa `f6beba1` (handoff
+  `2026-10-02-openttd-sdl-overlay-reexport-5`, covering -2 to -5): desktop
+  size full screen (`SDL_WINDOW_FULLSCREEN_DESKTOP`) as a full window that
+  stays a Wimp task; Message_ModeChange handled; a 90 <-> 180 dpi mode
+  change refits the window (scale, extent, mouse); SDL's desktop mode
+  follows resolution changes; a full window that can't be made falls back
+  to single-tasking full screen; the ARM SIMD/NEON blitter patches (off
+  unless SDL is configured with `--enable-arm-simd --enable-arm-neon`).
+  `sdl2-configure.ac.simd.p` clashes with the GCCSDK recipe's own
+  `configure.ac.p`, so `build/build-deps.sh` leaves it out (OpenTTD doesn't
+  turn the blitters on); handoff `2026-10-03-riscos-mesa-simd-patch-order`.
 - 2026-09-27: copied again from riscos-mesa `c0371ea`: icon bar sprite
   names of 12 characters, and a clearer error when the program is run in a
   TaskWindow (start it with `*WimpTask`).

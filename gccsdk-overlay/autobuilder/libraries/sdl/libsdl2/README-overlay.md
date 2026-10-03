@@ -8,8 +8,8 @@ then copied out; a change needed by another project comes here as a
 request (a handoff), not as an edit to its copy.
 `tools/sdl-overlay-check.sh DIR` reports whether a copy still matches.
 
-One set of per-file patches, GCCSDK autobuilder style (`patch -p0`, any
-order). The GL code is in these files, and the configure option decides
+One set of per-file patches, GCCSDK autobuilder style (`patch -p0`, in
+name order: the configure.ac ones build on each other). The GL code is in these files, and the configure option decides
 whether it is compiled:
 
 - **riscos-mesa** (`build/build-sdl2.sh`) configures with
@@ -27,7 +27,8 @@ It contains:
   task at VideoInit when the desktop is running, Wimp_SetMode instead of
   OS_ScreenMode while a task. Re-applied here from the OpenTTD port's notes;
   reconciled with riscos-openttd commit 9d90de1 (the same code).
-- OpenGL via OSMesa (`SDL_riscosopengl.[ch]` + small hooks), compiled only
+- OpenGL via OSMesa (`SDL_riscosopengl.[ch]` + small hooks; through
+  riscos-mesa's EGL since 2026-09-29, see below), compiled only
   with `--enable-video-riscos-osmesa`. Desktop GL 2.1, and (2026-09-25)
   OpenGL ES 1.1 / 2.0 with `SDL_GL_CONTEXT_PROFILE_ES`, which needs
   riscos-mesa's OSMesa patch (`OSMESA_ES1_PROFILE`/`OSMESA_ES2_PROFILE`). Without that flag the library has no
@@ -36,8 +37,7 @@ It contains:
   `OS_Pointer 2` on every poll and sent as `SDL_MOUSEWHEEL`, in a window
   (while the pointer is over it) and in full screen. RISC OS 5 on the Pi
   doesn't send Wimp `Scroll_Request` events. It's in
-  `src.video.riscos.SDL_riscosevents.c.p`; `scroll-wheel-only.diff` is the
-  same change on its own, against the previous events patch.
+  `src.video.riscos.SDL_riscosevents.c.p`.
 - Cooperative multitasking (2026-09-25): nothing in the driver may stop
   other tasks while the program has a desktop window.
   - `SDL_Delay` yields with Wimp_PollIdle (whole centiseconds; the
@@ -77,7 +77,11 @@ It contains:
     happened before any window title was set.
 - Sound (2026-09-26, from riscos-openttd commit a34e9bd): a RISC OS audio
   driver, `src/audio/riscos/SDL_riscosaudio.[ch]`, playing through the
-  RISC OS 5 SharedSoundBuffer and StreamManager modules (over SharedSound),
+  SharedSoundBuffer and StreamManager modules (over SharedSound, which is
+  part of RISC OS; the other two are John Duffell's freeware, in the
+  `ssb.zip` download on Andrew Sellors' RDPClient page,
+  <https://orac.co.uk/software/rdpclient/rdpclient.html>; John Duffell's own site, now on the Internet Archive, has more
+  details: <https://web.archive.org/web/20110920080106/http://www.duffell.riscos.me.uk/>),
   so SDL programs' sound mixes with other programs'. S16 stereo at the
   program's rate (SharedSoundBuffer resamples); about 60 ms queued; the
   audio thread sleeps rather than spins while the queue drains. It comes
@@ -125,14 +129,110 @@ It contains:
   `!Warzone210` and the icon was blank. `RISCOS_IconSpriteName`
   (`SDL_riscoswimp.h`) copies up to 12 characters with no terminator
   needed; checked by `tests/host-harness/sdl-wimp`.
+- GL windows through EGL, opt-in (2026-09-29, requested by the Warzone
+  2100 port; GL builds only, nothing changes without
+  `--enable-video-riscos-osmesa`):
+  - By default a GL window still renders into its sprite (the "sprite
+    path", unchanged). With any of the hints below, `SDL_riscosopengl.c`
+    uses the EGL path instead: the window is an EGL window surface
+    (riscos-mesa's libEGL) on the desktop window, or on the screen (-1)
+    full screen; the context is an EGL context in the screen's colour
+    order; redraw requests go to `eglRedrawWindowRISCOS`.
+    `SDL_RISCOS_GL_EGL` = "1" selects it on its own. **GL programs link
+    `-lEGL`** (libSDL2 contains both paths): `-lSDL2 -lGLU -lEGL -lOSMesa
+    ...`; build-sdl2.sh adds `-I egl/include`.
+  - Render size: the hint `SDL_RISCOS_GL_RENDER_SIZE` = `"WxH"` (or a
+    system variable of that name), read when a GL window is made. The
+    program then sees a WxH window (`SDL_GetWindowSize`, drawable size,
+    window events, mouse coordinates scaled from the desktop window or
+    the screen), while the desktop window keeps the size it asked for
+    (`SDL_riscoswindow.h`: `render_w/h`, `disp_w/h`, `RISCOS_ShownW/H`).
+    EGL renders at WxH and stretches it. Full screen keeps WxH, stretched
+    to the screen: `src.video.SDL_video.c.p` is a small hook in
+    `SDL_UpdateFullscreenMode` (`RISCOS_KeepsRenderSize`) so SDL doesn't
+    take the screen mode's size.
+  - Overlay: `SDL_RISCOS_GL_OVERLAY` "1"/"0" asks for / refuses EGL's
+    hardware overlay (`EGL_RISCOS_overlay`); unset, `EGL$Overlay` decides.
+    A frame EGL would have to wait a vsync for is held and shown from
+    PumpEvents (`RISCOS_GL_Idle`), which also keeps the overlay right
+    while nothing is swapped, so a swap never blocks the desktop. Only
+    the event loop's thread holds frames; a GL thread's swap waits (at
+    most a vsync) instead.
+  - On the EGL path the EX0 EY0 2x window scale is EGL's stretch too
+    (the surface always renders at the SDL window size).
+  - Checked by `tests/host-harness/harness.c` (the driver file, both
+    paths, against the real EGL and the fake RISC OS and VideoOverlay) and
+    `sdl-wimp` (mouse scaling).
+- Full screen that multitasks: the "full window" (2026-09-30, requested by
+  the Freeciv port, whose game server runs in a TaskWindow that full
+  screen used to stop). `SDL_WINDOW_FULLSCREEN_DESKTOP` gives a borderless
+  Wimp window the size of the screen, as RDPClient's full window mode: the
+  program keeps polling the Wimp, so other tasks run, the icon bar pops
+  up, other windows can come in front, and a click on the game brings it
+  back to the front. It's drawn, sized and scaled like any desktop window
+  (scale 1; a GL render size is stretched to the screen, through the
+  overlay if asked). A desktop mode change resizes it and sends
+  `SDL_WINDOWEVENT_RESIZED`. `SDL_WINDOW_FULLSCREEN` (with its mode
+  change) still owns the screen, for speed. The hint or system variable
+  `SDL_RISCOS_FULLSCREEN_WINDOW` = `"1"` makes that a full window too
+  (after Wimp_SetMode), and `"0"` gives the single tasking kind for both,
+  as before. `sdl-wimp` checks the click and the mode change.
+- ARM SIMD and NEON blitters (2026-09-30, suggested by the Freeciv port):
+  SDL 2.26 has ARM assembly for per-pixel alpha blits (32 bpp onto 32 bpp,
+  and onto RGB565), filling rectangles and two pixel format conversions
+  (from pixman, MIT licence, see LICENCES.txt), but its configure only
+  turns them on for Linux. `sdl2-configure.ac.simd.p` turns them on for
+  RISC OS, and `build/build-sdl2.sh` configures with `--enable-arm-simd
+  --enable-arm-neon` (and checks they took). SDL checks the CPU when a
+  blit is set up: NEON through VFPSupport, ARMv6 SIMD through
+  OS_PlatformFeatures (`SDL_cpuinfo.c`, unchanged). The alpha routines
+  leave the destination's alpha byte alone, where SDL's C code blends it,
+  so `src.video.SDL_blit_A.c.p` uses them only for destinations without
+  alpha, such as the window surface; onto a surface with alpha, the C code
+  runs as before. Their colours are within half a step of the exact blend
+  (the C code's are up to 2 steps off). Checked by
+  `tests/host-harness/sdl-arm` (on emulated NEON and SIMD-only CPUs).
+  On a Pi 4, sprites with soft edges or see-through all over draw about
+  1.6 times as fast (`sdlblitbench`; figures in the CHANGELOG).
+  riscos-openttd gets them only if it configures with the same two
+  options; without them `SDL_blit_A.c` is the same as before.
+- Desktop mode changes (2026-10-02, from a code review): on
+  Message_ModeChange the driver reads the eig factors and SDL's desktop
+  display mode again (`RISCOS_DesktopModeChanged`, new
+  `src.video.riscos.SDL_riscosmodes.h.p`; not while SDL has set a mode of
+  its own), and fits the desktop window to the new mode
+  (`RISCOS_WindowModeChanged`): a window's scale and extent are worked
+  out again, so its picture and the mouse stay right across a change
+  between 90 and 180 dpi; a full window takes the new screen's size. A
+  full window that can't be made falls back to single tasking full
+  screen. On the EGL path the mouse is mapped across the window's visible
+  area, which EGL stretches the frame over.
 - `sdl2-configure.ac.host.p`: OpenTTD's triplet fix (arm-riscos-gnueabihf
   is not Linux). `sdl2-configure.ac.osmesa.p`: the OSMesa option.
+  `sdl2-configure.ac.simd.p`: the ARM blitters (above).
 
 The older `sdl2-riscos-framebuffer.p` from the buildkit is superseded by
 `src.video.riscos.SDL_riscosframebuffer.c.p` and must not be applied.
 
-Regenerate after editing: in a git tree of pristine SDL + these patches,
-`git diff --no-prefix <pristine> HEAD -- <file> > src.video.riscos.<file>.p`.
+## Changing the overlay
+
+1. Edit the C files in the SDL tree that `build/build-sdl2.sh` makes
+   (`src/SDL-release-2.26.0`), never the `.p` files themselves.
+2. Rebuild (`build/build-sdl2.sh`) and run the host tests
+   (`tests/run-all.sh`: the `sdl` and `sdl-wimp` steps).
+3. Run `tools/sdl-overlay-regen.sh`. It rewrites each `.p` from the tree
+   (a diff of pristine SDL against it, without `index` lines, so only real
+   changes show) and then checks that pristine SDL plus the `.p` files
+   gives the tree exactly. `--check` does only the check.
+4. Commit the `.p` files. If anything OpenTTD's build compiles changed (all
+   but the GL files), write the riscos-openttd handoff to re-export.
+
+The four `sdl2-configure.ac.*.p` files patch the same file in turn (in
+name order), so the script only checks them: edit those by hand.
+
+`build/build-sdl2.sh` notices when the `.p` files have changed since its
+tree was made (after a `git pull`, say) and stops if the tree no longer
+matches them, rather than building old code.
 
 ## Licence
 These patches change SDL files, so they are under SDL's zlib licence, like

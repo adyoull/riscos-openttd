@@ -9,12 +9,17 @@ SDL2 video driver behaviour on RISC OS.
 - drawing on the game thread is off by default (-v sdl:threads turns it on);
 - RiscOsKeepDesktopAlive(): lets the Wimp poll (SDL_PumpEvents, main thread,
   at most every 50 ms) while files are read before the main loop runs, so
-  the desktop doesn't freeze during loading. Called by patch 13.
+  the desktop doesn't freeze during loading. Called by patch 13;
+- the main loop waits for the next tick with SDL_Delay instead of
+  SleepTillNextTick(): that uses std::this_thread::sleep_for, which ends in
+  UnixLib's nanosleep and spins in a desktop task, so the game took all the
+  processor between frames. SDL_Delay waits in Wimp_PollIdle in a desktop
+  window (whole centiseconds; the rest in steps of at most 4 ms).
 
 For OpenTTD 14.1. See docs/PORTING-NOTES.md in riscos-openttd.
 
 diff --git a/src/video/sdl2_v.cpp b/src/video/sdl2_v.cpp
-index e57cfa6..8f3a050 100644
+index e57cfa6..e108765 100644
 --- a/src/video/sdl2_v.cpp
 +++ b/src/video/sdl2_v.cpp
 @@ -181,6 +181,9 @@ bool VideoDriver_SDL_Base::CreateMainWindow(uint w, uint h, uint flags)
@@ -144,7 +149,36 @@ index e57cfa6..8f3a050 100644
  #endif
  
  	return nullptr;
-@@ -662,6 +740,22 @@ bool VideoDriver_SDL_Base::ChangeResolution(int w, int h)
+@@ -634,7 +712,27 @@ void VideoDriver_SDL_Base::LoopOnce()
+ 
+ /* Emscripten is running an event-based mainloop; there is already some
+  * downtime between each iteration, so no need to sleep. */
+-#ifndef __EMSCRIPTEN__
++#if defined(__riscos__)
++	/* RISC OS: wait through SDL_Delay, not SleepTillNextTick(). That uses
++	 * std::this_thread::sleep_for, which ends in UnixLib's nanosleep; in a
++	 * desktop task that spins until the time is up, so the game used all of
++	 * the processor between frames. On the main thread in a desktop window
++	 * SDL_Delay waits in Wimp_PollIdle, so other tasks get the time. The
++	 * Wimp counts in centiseconds and SDL rounds to the nearest one, so ask
++	 * only for whole centiseconds that fit; the rest (under 10 ms) is waited
++	 * in steps of at most 4 ms, which SDL does with one Wimp_Poll and a
++	 * short spin. Full screen waits as before. */
++	{
++		auto next_tick = this->next_draw_tick;
++		if (!this->is_game_threaded) next_tick = std::min(next_tick, this->next_game_tick);
++		auto wait = std::chrono::duration_cast<std::chrono::milliseconds>(next_tick - std::chrono::steady_clock::now()).count();
++		if (wait >= 10) {
++			SDL_Delay(static_cast<Uint32>(wait / 10 * 10));
++		} else if (wait > 0) {
++			SDL_Delay(static_cast<Uint32>(std::min<decltype(wait)>(wait, 4)));
++		}
++	}
++#elif !defined(__EMSCRIPTEN__)
+ 	this->SleepTillNextTick();
+ #endif
+ }
+@@ -662,6 +760,22 @@ bool VideoDriver_SDL_Base::ChangeResolution(int w, int h)
  
  bool VideoDriver_SDL_Base::ToggleFullscreen(bool fullscreen)
  {

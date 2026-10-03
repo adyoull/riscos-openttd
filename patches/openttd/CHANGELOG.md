@@ -3,6 +3,24 @@
 Changes made by the patches in `14.1/` to OpenTTD 14.1, newest first.
 See [PORTING-NOTES](../../docs/PORTING-NOTES.md) for more detail.
 
+## 2026-10-03
+
+### `09-sdl2-video.patch`: frame pacing through SDL_Delay
+- `LoopOnce` no longer calls `SleepTillNextTick()` on RISC OS. That ended in
+  `std::this_thread::sleep_for`, which UnixLib's `nanosleep` does by spinning
+  in a Wimp task, so the game used the whole CPU between frames.
+- It now works out the time to the next draw (or game) tick and waits with
+  `SDL_Delay`, which the riscos-mesa SDL turns into `Wimp_PollIdle` in a
+  window. Waits of 10 ms or more are rounded down to whole centiseconds;
+  shorter ones are capped at 4 ms (SDL then polls and does a short
+  `nanosleep`) so a frame isn't overslept.
+
+### SDL overlay re-exported from riscos-mesa f6beba1
+- Desktop mode changes are followed in a window, and full screen uses the
+  current desktop size. `sdl2-configure.ac.simd.p` is left out of the recipe
+  by `build/build-deps.sh` because it clashes with GCCSDK's `configure.ac.p`
+  (handoff `2026-10-03-riscos-mesa-simd-patch-order.md`).
+
 ## 2026-09-30 (first test on the Pi)
 
 ### `14-https-acornssl.patch`: the host name is now sent correctly
