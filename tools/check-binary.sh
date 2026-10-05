@@ -7,7 +7,7 @@
 #    ticker block from the RMA with "mov r3, #<size>" before OS_Module 6
 #    (svc 0x2001e, in no_dynamic_area), and the C side has the same size in
 #    __pthread_callevery_block_size. They must agree, and match the UnixLib
-#    the port is built with: 640 bytes for 5.0.3.1 (472 up to 5.0.3.1-rc8).
+#    the port is built with: 640 bytes since 5.0.3.1 (472 up to 5.0.3.1-rc8).
 #    If they disagree, a stale UnixLib object was linked: the ticker code is
 #    then copied past the end of its block, corrupting the RMA (this hung a
 #    Pi in another port). Rebuild UnixLib from clean.

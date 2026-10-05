@@ -36,7 +36,7 @@ This script:
 
 - applies `patches/gccsdk/gccsdk-toolchain.diff` and
   `patches/unixlib/unixlib-riscos.diff` (a copy of the patch from
-  riscos-unixlib's UnixLib 5.0.3.1 release, where all UnixLib changes are
+  riscos-unixlib's UnixLib 5.0.3.2 release, where all UnixLib changes are
   now made; rebuild UnixLib from clean when it changes);
 - builds the GCC 4.7.4 base toolchain (`gcc4/build-world`);
 - builds GCC 10.2 for `arm-riscos-gnueabihf` with the autobuilder, cross
@@ -120,7 +120,7 @@ both in libstdc++ (with the riscos-unixlib UnixLib, which is built with
 
 `build/build-openttd.sh` ends by running `tools/check-binary.sh` on both
 programs. It checks that the UnixLib ticker block size agrees between the
-start-up code and the C side (640 bytes for 5.0.3.1; a mismatch means a stale
+start-up code and the C side (640 bytes since 5.0.3.1; a mismatch means a stale
 UnixLib object was linked), that no more than two functions have unprobed
 large stack frames, and that no build machine paths are left in the stripped
 program. Run it by hand with

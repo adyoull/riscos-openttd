@@ -157,7 +157,7 @@ diff --git src/video/riscos/SDL_riscosevents.c src/video/riscos/SDL_riscosevents
  void
  RISCOS_PollKeyboard(_THIS)
  {
-@@ -57,6 +190,17 @@ RISCOS_PollKeyboard(_THIS)
+@@ -57,17 +190,39 @@ RISCOS_PollKeyboard(_THIS)
      Uint8 key = 2;
      int i;
  
@@ -169,24 +169,88 @@ diff --git src/video/riscos/SDL_riscosevents.c src/video/riscos/SDL_riscosevents
 +                driverdata->key_pressed[i] = 255;
 +            }
 +        }
++        driverdata->repeat_key = 255;
 +        return;
 +    }
 +
      /* Check for key releases */
      for (i = 0; i < RISCOS_MAX_KEYS_PRESSED; i++) {
          if (driverdata->key_pressed[i] != 255) {
-@@ -67,6 +211,10 @@ RISCOS_PollKeyboard(_THIS)
+             if ((_kernel_osbyte(129, driverdata->key_pressed[i] ^ 0xff, 0xff) & 0xff) != 255) {
+                 SDL_SendKeyboardKey(SDL_RELEASED, SDL_RISCOS_translate_keycode(driverdata->key_pressed[i]));
++                if (driverdata->key_pressed[i] == driverdata->repeat_key) {
++                    driverdata->repeat_key = 255;
++                }
+                 driverdata->key_pressed[i] = 255;
+             }
          }
      }
  
+-    /* Check for key presses */
 +    /* Typed characters (full screen; the Wimp delivers them when windowed). */
 +    if (!RISCOS_IsWindowed(driverdata))
 +        RISCOS_DrainKeyboardBuffer();
 +
-     /* Check for key presses */
++    /* Check for key presses. 2026: only keys that weren't down at the last
++       poll are sent: the scan sees every key held, and sending those again
++       on every poll gave a repeat (SDL_KEYDOWN, repeat 1) each frame, so a
++       tap acted several times (reported by the fheroes2 port). */
      while (key < 0xff) {
          key = _kernel_osbyte(121, key + 1, 0) & 0xff;
-@@ -111,36 +259,179 @@ static const Uint8 mouse_button_map[] = {
+         switch (key) {
+@@ -84,20 +239,48 @@ RISCOS_PollKeyboard(_THIS)
+             break;
+ 
+         default:
+-            SDL_SendKeyboardKey(SDL_PRESSED, SDL_RISCOS_translate_keycode(key));
+-
+-            /* Record the press so we can detect release later. */
++            /* Already down, or a new press: record it so we can detect
++               the release later. A key that doesn't fit in the table
++               isn't sent at all, as its release couldn't be. */
+             for (i = 0; i < RISCOS_MAX_KEYS_PRESSED; i++) {
+                 if (driverdata->key_pressed[i] == key) {
+                     break;
+                 }
+                 if (driverdata->key_pressed[i] == 255) {
++                    int delay;
+                     driverdata->key_pressed[i] = key;
++                    SDL_SendKeyboardKey(SDL_PRESSED, SDL_RISCOS_translate_keycode(key));
++                    /* the newest key held auto-repeats, after the
++                       keyboard's delay (OS_Byte 196, centiseconds; 0 =
++                       no auto-repeat) */
++                    delay = _kernel_osbyte(196, 0, 255) & 0xff;
++                    driverdata->repeat_key = delay ? key : 255;
++                    driverdata->repeat_due = SDL_GetTicks() + delay * 10;
+                     break;
+                 }
+             }
+         }
+     }
++
++    /* 2026: auto-repeat as the desktop does it: the held key is sent again
++       (SDL marks it as a repeat) at the keyboard's repeat rate (OS_Byte
++       197, centiseconds; 0 = none), read each time so *Configure and
++       *FX 11/12 changes apply. A slow frame gives one repeat, not a burst. */
++    if (driverdata->repeat_key != 255) {
++        const Uint32 now = SDL_GetTicks();
++        if (SDL_TICKS_PASSED(now, driverdata->repeat_due)) {
++            const int rate = (_kernel_osbyte(196, 0, 255) >> 8) & 0xff;
++            if (rate) {
++                SDL_SendKeyboardKey(SDL_PRESSED, SDL_RISCOS_translate_keycode(driverdata->repeat_key));
++                driverdata->repeat_due += rate * 10;
++                if (SDL_TICKS_PASSED(now, driverdata->repeat_due)) {
++                    driverdata->repeat_due = now + rate * 10;
++                }
++            } else {
++                driverdata->repeat_key = 255;
++            }
++        }
++    }
+ }
+ 
+ static const Uint8 mouse_button_map[] = {
+@@ -111,36 +294,185 @@ static const Uint8 mouse_button_map[] = {
      SDL_BUTTON_X2 + 3
  };
  
@@ -215,7 +279,11 @@ diff --git src/video/riscos/SDL_riscosevents.c src/video/riscos/SDL_riscosevents
 +        return;
 +
 +    buttons = ptr.buttons & 7;
-+    inside = (ptr.window == driverdata->wimp_window) ? SDL_TRUE : SDL_FALSE;
++    /* 2026: the work area only (icon -1): over the title bar, scroll bars
++       and border icons the Wimp gives our window handle too, with icons -2
++       to -13, and a drag of the window or a click on its close icon is not
++       the program's (a drag started inside still is, below) */
++    inside = (ptr.window == driverdata->wimp_window && ptr.icon == -1) ? SDL_TRUE : SDL_FALSE;
 +    /* 2026: a click that was pressed and released between two polls (easy
 +       when a frame takes 100 ms or more, as with software OpenGL) was never
 +       seen. The Wimp's Mouse_Click event records it: report the press now
@@ -237,7 +305,9 @@ diff --git src/video/riscos/SDL_riscosevents.c src/video/riscos/SDL_riscosevents
 +        inside = SDL_TRUE;
 +
 +    x = (ptr.x - (state.open.visible.x0 - state.open.scroll_x)) >> xeig;
-+    y = ((state.open.visible.y1 - state.open.scroll_y) - ptr.y) >> yeig;
++    /* (visible.y1 is exclusive: the top row of pixels starts 1 OS unit
++       below it, so it's row 0) */
++    y = ((state.open.visible.y1 - state.open.scroll_y - 1) - ptr.y) >> yeig;
 +    /* screen pixels -> SDL pixels: the window may be scaled (wscale, and a
 +       GL render size stretched over it; see RISCOS_ShownW) */
 +    if (window->driverdata && ((SDL_WindowData *) window->driverdata)->gl_egl) {
@@ -247,7 +317,7 @@ diff --git src/video/riscos/SDL_riscosevents.c src/video/riscos/SDL_riscosevents
 +        int vw = (state.open.visible.x1 - state.open.visible.x0) >> xeig;
 +        int vh = (state.open.visible.y1 - state.open.visible.y0) >> yeig;
 +        x = (ptr.x - state.open.visible.x0) >> xeig;
-+        y = (state.open.visible.y1 - ptr.y) >> yeig;
++        y = (state.open.visible.y1 - 1 - ptr.y) >> yeig;
 +        if (vw > 0 && vw != window->w) x = (int)(((long long)x * window->w) / vw);
 +        if (vh > 0 && vh != window->h) y = (int)(((long long)y * window->h) / vh);
 +    } else {
@@ -373,7 +443,15 @@ diff --git src/video/riscos/SDL_riscosevents.c src/video/riscos/SDL_riscosevents
  int
  RISCOS_InitEvents(_THIS)
  {
-@@ -165,10 +456,349 @@ RISCOS_InitEvents(_THIS)
+@@ -150,6 +482,7 @@ RISCOS_InitEvents(_THIS)
+ 
+     for (i = 0; i < RISCOS_MAX_KEYS_PRESSED; i++)
+         driverdata->key_pressed[i] = 255;
++    driverdata->repeat_key = 255;
+ 
+     status = (_kernel_osbyte(202, 0, 255) & 0xFF);
+     SDL_ToggleModState(KMOD_NUM,    (status & (1 << 2)) == 0);
+@@ -165,10 +498,349 @@ RISCOS_InitEvents(_THIS)
      return 0;
  }
  

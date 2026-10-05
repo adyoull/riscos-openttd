@@ -17,6 +17,14 @@ SDL2 is listed in more detail here:
   the mouse right; after a desktop resolution change, full screen uses the
   new desktop size; desktop-size full screen is a full window that stays a
   desktop task.
+- SDL updated again from riscos-mesa (`50976c8`): dragging the window by
+  its title bar or clicking its border icons no longer clicks in the game;
+  the top row of the window can be clicked (clicks were one row low); a
+  tapped key acts once, and held keys repeat at the desktop's rate.
+- Relinked with UnixLib 5.0.3.2 (`LLONG_MIN`, `getservbyname_r`, eventfd
+  between threads; nothing OpenTTD relied on) and midisynth 0.4.2 (same
+  sound and API; per-synth errors and a DigitalRenderer output OpenTTD
+  doesn't use). PThreadTicker is still 0.03.
 - `tools/check-binary.sh` (run by `build/build-openttd.sh`) checks each
   program: UnixLib's thread ticker block matches the UnixLib built with,
   stack probes, and no build paths.

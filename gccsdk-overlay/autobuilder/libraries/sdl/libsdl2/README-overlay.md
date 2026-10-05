@@ -211,6 +211,25 @@ It contains:
   is not Linux). `sdl2-configure.ac.osmesa.p`: the OSMesa option.
   `sdl2-configure.ac.simd.p`: the ARM blitters (above).
 
+- Key repeats (2026-10-03, reported by the fheroes2 port): the keyboard
+  scan (OS_Byte 121) sees every key held, and upstream sent each one as a
+  press on every poll, so SDL gave a repeat every frame and a tap acted
+  several times. Now only new presses are sent, and the newest key held
+  repeats as on the desktop: after the auto-repeat delay and at the rate
+  (OS_Byte 196: R1 delay, R2 rate, centiseconds; 0 = none), one repeat
+  per poll at most. A key that doesn't fit in the six-key table is
+  ignored (upstream sent it on every poll and never released it).
+  `SDL_riscosevents.c`, `SDL_riscosvideo.h`; host-tested by
+  `tests/host-harness/sdl-wimp`.
+
+- Audit fixes (2026-10-04): the pointer counts as in the window only over
+  its work area (`Wimp_GetPointerInfo` icon -1), so dragging the window by
+  its title bar or clicking its close icon no longer reaches the program;
+  window y coordinates treat the visible area's top (y1) as exclusive, so
+  the top row is reachable and rows aren't one out; and
+  `sdl2-config`/`sdl2.pc` give `-lEGL` before `-lOSMesa` (libSDL2 always
+  needs it), so ports built with pkg-config, CMake or autotools link.
+
 The older `sdl2-riscos-framebuffer.p` from the buildkit is superseded by
 `src.video.riscos.SDL_riscosframebuffer.c.p` and must not be applied.
 
@@ -229,6 +248,11 @@ The older `sdl2-riscos-framebuffer.p` from the buildkit is superseded by
 
 The four `sdl2-configure.ac.*.p` files patch the same file in turn (in
 name order), so the script only checks them: edit those by hand.
+--check also applies them after the GCCSDK autobuilder's own libsdl2
+`configure.ac.p` (riscos-openttd builds with that recipe), when it finds the
+autobuilder (`GCCSDK_AUTOBUILDER=<dir>`, or next to `GCCSDK_ENV`): that patch
+changes the RISC OS section too, so a hunk whose context it touches fails
+there although it applies to pristine SDL.
 
 `build/build-sdl2.sh` notices when the `.p` files have changed since its
 tree was made (after a `git pull`, say) and stops if the tree no longer

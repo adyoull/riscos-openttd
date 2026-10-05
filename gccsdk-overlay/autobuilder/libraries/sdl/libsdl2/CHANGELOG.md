@@ -11,6 +11,14 @@ From here on the `.p` files are an unmodified copy of riscos-mesa's
 changes are recorded there. This file is the history of the OpenTTD copy
 up to that point.
 
+- 2026-10-05: copied again from riscos-mesa `50976c8` (handoff
+  `2026-10-04-openttd-sdl-overlay-reexport-8`, covering -6 to -8): the
+  window's title bar, scroll bars and border icons are no longer reported
+  to the program as clicks or motion in the game; window y coordinates are
+  no longer one row out (the top row can be clicked); keys are sent once,
+  with repeats at the desktop's delay and rate; `sdl2-configure.ac.simd.p`
+  re-anchored so it applies with the GCCSDK recipe's `configure.ac.p`, and
+  `build/build-deps.sh` no longer leaves it out.
 - 2026-10-03: copied again from riscos-mesa `f6beba1` (handoff
   `2026-10-02-openttd-sdl-overlay-reexport-5`, covering -2 to -5): desktop
   size full screen (`SDL_WINDOW_FULLSCREEN_DESKTOP`) as a full window that
