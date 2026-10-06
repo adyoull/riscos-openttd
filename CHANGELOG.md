@@ -6,7 +6,9 @@ SDL2 is listed in more detail here:
 - [OpenTTD changes](patches/openttd/CHANGELOG.md)
 - [SDL2 changes](gccsdk-overlay/autobuilder/libraries/sdl/libsdl2/CHANGELOG.md)
 
-## Unreleased
+## 14.1-riscos7 (tag `14.1.7`)
+
+Changes since 14.1-riscos6.
 
 - The game no longer uses all of the processor while it waits between
   frames in a desktop window. It used C++'s `sleep_for`, which UnixLib
