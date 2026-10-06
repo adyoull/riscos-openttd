@@ -6,6 +6,14 @@ SDL2 is listed in more detail here:
 - [OpenTTD changes](patches/openttd/CHANGELOG.md)
 - [SDL2 changes](gccsdk-overlay/autobuilder/libraries/sdl/libsdl2/CHANGELOG.md)
 
+## Unreleased
+
+- Relinked with UnixLib 5.0.3.3 (fixes from a code audit: threads waiting
+  inside `read()`/`write()`/stdio, `fork()` with threads, the services
+  database, a heap gap that could cap later heap areas, `swprintf`, exit
+  codes 128-255). Nothing OpenTTD needed changing; PThreadTicker is still
+  0.03.
+
 ## 14.1-riscos7 (tag `14.1.7`)
 
 Changes since 14.1-riscos6.
