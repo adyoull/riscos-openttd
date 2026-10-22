@@ -98,8 +98,8 @@ game options.
 The music comes in a third archive (OpenTTD-14.1-riscos-Music.zip);
 unpack it over !OpenTTD too. It has the OpenMSX music and a General MIDI
 SoundFont (TimGM6mb) to play it with, because RISC OS has no MIDI
-synthesiser of its own. If you have !MIDISynth installed, its SoundFont
-is used instead. Music needs sound to be working.
+synthesiser of its own. If you have !SoftMIDI (formerly !MIDISynth)
+installed, its SoundFont is used instead. Music needs sound to be working.
 
 
 Where things are saved

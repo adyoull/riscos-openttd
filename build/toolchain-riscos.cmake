@@ -1,24 +1,26 @@
-# this one is important
+# CMake toolchain file for OpenTTD on RISC OS: riscos-crossdev's GCCSDK
+# GCC 10.2 ($RISCOS_TOOLCHAIN), and the libraries build/build-deps.sh puts
+# in $STAGE. (OpenTTD's own CMake files check RISCOS, with the system seen
+# as a GNU one.)
 SET(CMAKE_SYSTEM_NAME GNU)
 SET(CMAKE_USER_MAKE_RULES_OVERRIDE ${CMAKE_CURRENT_LIST_DIR}/riscos-overrides.cmake)
 SET(RISCOS TRUE)
-#this one not so much
 SET(CMAKE_SYSTEM_VERSION 1)
-
 SET(CMAKE_SYSTEM_PROCESSOR arm)
 
-# specify the cross compiler
-SET(CMAKE_C_COMPILER   $ENV{GCCSDK_INSTALL_ENV}/arm-riscos-gnueabihf-gcc)
-SET(CMAKE_ASM_COMPILER   $ENV{GCCSDK_INSTALL_ENV}/arm-riscos-gnueabihf-gcc)
-SET(CMAKE_CXX_COMPILER $ENV{GCCSDK_INSTALL_ENV}/arm-riscos-gnueabihf-g++)
+SET(CMAKE_C_COMPILER   $ENV{RISCOS_TOOLCHAIN}/bin/arm-riscos-gnueabihf-gcc)
+SET(CMAKE_ASM_COMPILER $ENV{RISCOS_TOOLCHAIN}/bin/arm-riscos-gnueabihf-gcc)
+SET(CMAKE_CXX_COMPILER $ENV{RISCOS_TOOLCHAIN}/bin/arm-riscos-gnueabihf-g++)
+SET(CMAKE_AR     $ENV{RISCOS_TOOLCHAIN}/bin/arm-riscos-gnueabihf-ar CACHE FILEPATH "")
+SET(CMAKE_RANLIB $ENV{RISCOS_TOOLCHAIN}/bin/arm-riscos-gnueabihf-ranlib CACHE FILEPATH "")
 
-# where is the target environment 
-SET(CMAKE_FIND_ROOT_PATH  $ENV{GCCSDK_INSTALL_ENV})
-
-# search for programs in the build host directories
+# Libraries and headers: ours first, then the toolchain's own.
+SET(CMAKE_FIND_ROOT_PATH $ENV{STAGE} $ENV{RISCOS_TOOLCHAIN}/arm-riscos-gnueabihf)
 SET(CMAKE_FIND_ROOT_PATH_MODE_PROGRAM NEVER)
-# for libraries and headers in the target directories
 SET(CMAKE_FIND_ROOT_PATH_MODE_LIBRARY ONLY)
 SET(CMAKE_FIND_ROOT_PATH_MODE_INCLUDE ONLY)
+SET(CMAKE_FIND_ROOT_PATH_MODE_PACKAGE ONLY)
 
-SET(ENV{PKG_CONFIG_LIBDIR} $ENV{GCCSDK_INSTALL_ENV}/lib/pkgconfig:$ENV{GCCSDK_INSTALL_ENV}/share/pkgconfig)
+SET(ENV{PKG_CONFIG_LIBDIR} $ENV{STAGE}/lib/pkgconfig)
+SET(ENV{PKG_CONFIG_PATH} "")
+SET(ENV{PKG_CONFIG_SYSROOT_DIR} "")

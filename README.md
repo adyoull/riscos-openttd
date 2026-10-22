@@ -102,23 +102,24 @@ seconds, remove the `|` from the `Set OpenTTD$Debug` line in `!Run`.
 ## What's in this repository
 
 The repository has the RISC OS changes and the build scripts, not a copy of
-OpenTTD, SDL or GCCSDK. Everything is applied as patches to the upstream
+OpenTTD, SDL or the toolchain. Everything is applied as patches to the upstream
 sources:
 
 | Path | What |
 |------|------|
 | `app/!OpenTTD` | The RISC OS application resources (`!Run`, `!Boot`, `!Help`, `!Sprites`) |
 | `patches/openttd` | The patch against OpenTTD tag `14.1` |
-| `gccsdk-overlay/…/libsdl2` | SDL 2.26 RISC OS driver changes (GCCSDK autobuilder `.p` patches), a copy of riscos-mesa's `patches/sdl2` |
-| `patches/gccsdk` | Changes to the GCCSDK autobuilder recipes (GCC 10.2, SDL2) |
-| `patches/unixlib` | UnixLib fixes, copied from riscos-unixlib: wide characters, a high-resolution clock, precise `nanosleep`, no mmap, sound (`/dev/dsp` via SharedSoundBuffer, the exit fix, `/dev/midi`), `fsync`/`fdatasync`, joining threads at exit |
+| `gccsdk-overlay/…/libsdl2` | SDL 2.26 RISC OS driver changes (`.p` patches), a copy of riscos-mesa's `patches/sdl2` at the release in `.riscos-deps` |
 
-The SDL2 and UnixLib changes are linked into the OpenTTD program itself.
-Nothing on your machine is replaced, and other programs aren't affected.
-| `build/` | CMake toolchain file and build/package scripts |
-| `src/music/midisynth_m.cpp` (in the OpenTTD patch) | Music driver using [riscos-midisynth](https://github.com/adyoull/riscos-midisynth), a General MIDI synth library for RISC OS |
-| `tools/elf2aif` | elf2aif (ELF to Absolute converter) with a fix for programs over 32MB |
-| `tools/` | `check-stack-probes.py`, and small helpers for building without full network access |
+| `build/` | The build scripts, the CMake toolchain file, and `SOURCES` (every download, with its checksum) |
+| `.riscos-deps`, `.github/`, `ci/` | The releases it's built with, and the builds on GitHub (see BUILDING.md) |
+| `src/music/midisynth_m.cpp` (in the OpenTTD patch) | Music driver using [riscos-softmidi](https://github.com/adyoull/riscos-softmidi) (formerly riscos-midisynth), a General MIDI synth library for RISC OS |
+| `tools/` | Checks on the built program, and tests for the NEON blitter and the HTTPS code |
+
+It's built with [riscos-crossdev](https://github.com/adyoull/riscos-crossdev)'s
+toolchain (GCCSDK GCC 10.2 with riscos-unixlib's UnixLib). SDL2, UnixLib and
+the other libraries are linked into the OpenTTD program itself: nothing on
+your machine is replaced, and other programs aren't affected.
 
 See [BUILDING.md](BUILDING.md) to build it yourself, [docs/PORTING-NOTES.md](docs/PORTING-NOTES.md)
 for what the patches do and why, and [CHANGELOG.md](CHANGELOG.md) for the history. There are detailed change

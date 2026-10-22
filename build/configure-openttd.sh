@@ -1,13 +1,15 @@
-#!/bin/bash -e
-# Configure OpenTTD 14.1 for RISC OS (GCCSDK GCC 10.2, arm-riscos-gnueabihf),
-# statically linked. Needs the host tools build (build-host) first; see
+#!/bin/bash
+# Configure OpenTTD 14.1 for RISC OS (riscos-crossdev's GCCSDK GCC 10.2,
+# arm-riscos-gnueabihf), statically linked against the libraries in
+# $STAGE. Needs the host tools build (build-host) first; see
 # build/build-openttd.sh.
+set -euo pipefail
 . "$(dirname "$0")/env.sh"
 # OPENTTD_FAST=1: the NEON build (Raspberry Pi 2 and later) in build-fast.
-if [ "$OPENTTD_FAST" = 1 ]; then
-  BDIR=build-fast; ARCHFLAGS="-mfpu=neon-vfpv4 -mtune=cortex-a72 -fstack-clash-protection"
+if [ "${OPENTTD_FAST:-0}" = 1 ]; then
+  BDIR=build-fast; ARCHFLAGS="-mfpu=neon-vfpv4 -mfloat-abi=hard -mtune=cortex-a72 -fstack-clash-protection"
 else
-  BDIR=build-ro;   ARCHFLAGS="-mtune=cortex-a72 -fstack-clash-protection"
+  BDIR=build-ro;   ARCHFLAGS="-mfpu=vfpv3 -mfloat-abi=hard -mtune=cortex-a72 -fstack-clash-protection"
 fi
 # Record source paths in the program (assert messages, __FILE__) relative to
 # a neutral name rather than the build machine's directory.

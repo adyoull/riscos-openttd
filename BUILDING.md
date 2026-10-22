@@ -1,166 +1,144 @@
 # Building OpenTTD for RISC OS
 
-The game is cross-compiled on Linux (x86_64) with the
-[GCCSDK](https://www.riscos.info/index.php/GCCSDK) GCC 10.2 cross compiler for
-`arm-riscos-gnueabihf`, and statically linked.
+The game is cross-compiled on Linux (x86_64) with
+[riscos-crossdev](https://github.com/adyoull/riscos-crossdev): GCCSDK
+GCC 10.2 for `arm-riscos-gnueabihf` with riscos-unixlib's UnixLib, its
+`elf2aif`, and its checks. The programs are statically linked.
 
-The release builds were made on Ubuntu with GCC 9 as the host compiler.
+The versions it's built with are pinned in `.riscos-deps` at the top of the
+repository: riscos-crossdev (and so its toolchain and UnixLib), riscos-mesa
+(whose SDL overlay is copied in `gccsdk-overlay/`) and riscos-softmidi (the
+music synth). Everything else is downloaded and checked against the
+checksums in `build/SOURCES`.
 
-## 1. Get the sources
+## The short way: the container image
 
-```sh
-mkdir -p ~/riscos && cd ~/riscos
-git clone https://github.com/jhamby/riscos-gccsdk gccsdk
-git clone https://github.com/OpenTTD/OpenTTD                   # tag 14.1
-git clone https://github.com/adyoull/riscos-openttd
-```
-
-The scripts check out the versions the port is tested with: GCCSDK commit
-`64c6f81` and OpenTTD tag `14.1` (`GCCSDK_REF` and `OPENTTD_REF` in
-`build/env.sh`). They won't switch a clone that has local changes; set the
-variable to `HEAD` to build whatever is checked out.
-
-All the scripts can be run again, for example after fixing a problem with
-the build machine: patches that are already applied are skipped.
-
-The scripts look for these under `~/riscos`. Set `GCCSDK_SRC`, `OPENTTD_SRC` and
-`AB_DIR` to use other locations (see `build/env.sh`).
-
-## 2. Build the toolchain
+riscos-crossdev publishes a container image with the toolchain installed.
+From the top of this repository:
 
 ```sh
-riscos-openttd/build/build-toolchain.sh
+docker run --rm -v "$PWD":/src ghcr.io/adyoull/riscos-crossdev:1.8.2 \
+  sh -c 'build/build-deps.sh && build/build-openttd.sh && build/package.sh'
 ```
 
-This script:
+(Use the version in `.riscos-deps`. Add `--user "$(id -u):$(id -g)" -e HOME=/tmp`
+so the files it makes are yours.) This is exactly what GitHub runs (see
+"Builds on GitHub" below). It makes `dist/OpenTTD-14.1-riscos.zip`.
 
-- applies `patches/gccsdk/gccsdk-toolchain.diff` and
-  `patches/unixlib/unixlib-riscos.diff` (a copy of the patch from
-  riscos-unixlib's UnixLib 5.0.3.3 release, where all UnixLib changes are
-  now made; rebuild UnixLib from clean when it changes);
-- builds the GCC 4.7.4 base toolchain (`gcc4/build-world`);
-- builds GCC 10.2 for `arm-riscos-gnueabihf` with the autobuilder, cross
-  compiler only (`AB_SKIP_NATIVE=yes`).
+## On your own machine
 
-The host needs the GCCSDK prerequisites: a C/C++ compiler, autoconf 2.64,
-automake 1.11.1 and libtool 2.4.2 (GCCSDK checks these versions), plus flex,
-bison, texinfo, subversion, cmake and the usual build tools.
-
-### Notes for awkward hosts
-
-- **Automake:** GCCSDK insists on automake 1.11.1. Automake 1.11.6 works if its
-  version string is changed to 1.11.1.
-- **Texinfo 7:** texinfo 7 can't build the old GCC documentation.
-  `tools/fake-makeinfo` reports version 4.2 and does nothing, so the docs are
-  skipped. Put it first on `PATH` as `makeinfo`.
-- **Restricted network:** if the build machine can't reach gnu.org, riscos.info
-  or the Debian/Raspbian mirrors, put the source tarballs in `$WGET_CACHE`
-  (default `~/riscos/dl-cache`) and put `tools/wget-cache-shim.sh` first on
-  `PATH` as `wget`. If the gmp/mpfr/mpc tarballs are in that cache,
-  `gccsdk-toolchain.diff` unpacks them from there instead of running
-  `download_prerequisites`.
-- **makerun:** the autobuilder uses NetSurf's `makerun`. If you can't get it,
-  `tools/makerun.c` is a small stand-in (`cc -o makerun makerun.c`).
-
-## 3. Build the libraries
+Install riscos-crossdev at the tag in `.riscos-deps` and its prebuilt
+toolchain, then point the scripts at it:
 
 ```sh
-riscos-openttd/build/build-deps.sh
+git clone -b v1.8.2 https://github.com/adyoull/riscos-crossdev ~/riscos/riscos-crossdev
+make -C ~/riscos/riscos-crossdev prebuilt devkit
+export RCD_DIR=~/riscos/riscos-crossdev      # found there by default anyway
 ```
 
-This builds zlib, liblzma, liblzo2, libpng and SDL 2.26 with the autobuilder.
-
-The SDL overlay in `gccsdk-overlay/` is a copy of riscos-mesa's
-`patches/sdl2` (see `SOURCE` there and `docs/PORTING-NOTES.md`); don't edit
-it here. It includes OpenGL code that is only built with
-`--enable-video-riscos-osmesa`, which OpenTTD doesn't use; the script stops
-if SDL was built with it.
-
-For SDL, it resets the libsdl2 recipe, copies the `.p` files in
-`gccsdk-overlay/` into it and
-applies `patches/gccsdk/libsdl2-setvars.diff`. The changes to the recipe:
-
-- regenerate `configure` every time;
-- recognise `arm-riscos-gnueabihf` as RISC OS;
-- turn off X11, Wayland and the VFP/OpenGL build;
-- drop the khronos/oslib dependencies.
-
-The script also deletes the recipe's `depends` file.
-
-For music, clone [riscos-midisynth](https://github.com/adyoull/riscos-midisynth)
-to `~/riscos/riscos-midisynth` (or set `MIDISYNTH_SRC`) first. The script
-then installs `libmidisynth.a` and `midisynth.h` into the GCCSDK
-environment, and OpenTTD's configure finds them and builds the `midisynth`
-music driver. Without it the game builds with no music driver.
-
-**Check** that the configure summary's "Video drivers" line includes `riscos`.
-If it doesn't, SDL builds without the RISC OS driver and the game will fail with
-"No available video device". The script checks the library for this.
-
-## 4. Build OpenTTD
+The host needs what riscos-crossdev's `docs/SETUP.md` lists (a C/C++
+compiler, cmake, autoconf, automake, libtool, python3, curl, dpkg-deb), the
+same as the image. Then, from this repository:
 
 ```sh
-riscos-openttd/build/build-openttd.sh
+build/build-deps.sh       # the libraries, into work/stage
+build/build-openttd.sh    # OpenTTD, in work/openttd-14.1/build-ro and build-fast
+build/package.sh          # the zip, in dist/
 ```
 
-This script:
+Everything the build makes goes in `work/` (downloads in `work/dl`; set `DL`
+to keep them elsewhere). The scripts can be run again: libraries already
+built with the same sources are skipped.
 
-- checks out tag 14.1 and applies the patches in `patches/openttd/14.1`, in
-  the order given in its `series` file;
+### 1. The libraries (`build/build-deps.sh`)
+
+Into `work/stage`:
+
+- liblzma (xz 5.4.5), LZO 2.10 and libpng 1.6.43, with their own configure;
+  zlib is riscos-crossdev's devkit's;
+- SDL 2.26.0 with the overlay in `gccsdk-overlay/autobuilder/libraries/sdl/libsdl2`;
+- riscos-softmidi (`libmidisynth.a`) at the release in `.riscos-deps`, for
+  the `midisynth` music driver.
+
+The SDL overlay is a copy of riscos-mesa's `patches/sdl2` (see `SOURCE`
+there and `docs/PORTING-NOTES.md`); don't edit it here. It includes OpenGL
+code that's only built with `--enable-video-riscos-osmesa`. OpenTTD's SDL is
+configured without it, so the game has no GL in it; the script stops if
+SDL's configuration says otherwise, or lacks the RISC OS video or sound
+driver.
+
+### 2. OpenTTD (`build/build-openttd.sh`)
+
+- unpacks OpenTTD 14.1 into `work/openttd-14.1` and applies the patches in
+  `patches/openttd/14.1`, in the order of its `series` file (if the patches
+  change later, remove `work/openttd-14.1` to start again from them);
 - builds the host tools (`build-host`);
 - configures the cross build with `build/toolchain-riscos.cmake`;
-- builds the standard program in `build-ro` and the NEON one
-  (`openttd-fast`) in `build-fast`, both with `-fstack-clash-protection`, and with
-  `-ffile-prefix-map` so the program records source paths as `openttd-14.1/…`
-  rather than the build machine's directories.
-
-`tools/check-stack-probes.py build-ro/openttd` should list only two functions,
-both in libstdc++ (with the riscos-unixlib UnixLib, which is built with
-`-fstack-clash-protection`).
-
-`build/build-openttd.sh` ends by running `tools/check-binary.sh` on both
-programs. It checks that the UnixLib ticker block size agrees between the
-start-up code and the C side (640 bytes since 5.0.3.1; a mismatch means a stale
-UnixLib object was linked), that no more than two functions have unprobed
-large stack frames, and that no build machine paths are left in the stripped
-program. Run it by hand with
-`tools/check-binary.sh build-ro/openttd build-ro/openttd-stripped`.
+- builds the standard program in `build-ro` (VFPv3) and the NEON one
+  (`openttd-fast`) in `build-fast`, both with `-fstack-clash-protection`,
+  and with `-ffile-prefix-map` so the program records source paths as
+  `openttd-14.1/…` rather than the build machine's directories;
+- checks both programs: riscos-crossdev's `checks/check-static.sh`, and
+  `tools/check-binary.sh`, which checks that the UnixLib ticker block size
+  agrees between the start-up code and the C side (640 bytes since
+  5.0.3.1; a mismatch means a stale UnixLib object was linked), that every
+  function with a large stack frame probes it (none are left unprobed with
+  riscos-crossdev's libraries; up to two are allowed, `MAX_UNPROBED`), and that no build machine paths are left in the stripped
+  program. The standard program is also checked for VFPv4-only
+  instructions (`checks/check-fpu.sh`).
 
 To re-link after changing a library, run `rm build-ro/openttd` and then
-`make openttd`.
+`make openttd` in `work/openttd-14.1/build-ro`.
 
 To decode a crash address from a backtrace in the log, use the unstripped
 binary:
 
 ```sh
-$GCCSDK_INSTALL_ENV/bin/arm-riscos-gnueabihf-addr2line -f -C -e build-ro/openttd 0x...
+$RCD_DIR/toolchain/env/bin/arm-riscos-gnueabihf-addr2line -f -C -e work/openttd-14.1/build-ro/openttd 0x...
 ```
 
-## 5. Package
+### 3. Package (`build/package.sh`)
 
-Build elf2aif first. The package script uses it to turn both programs into
-RISC OS Absolute files:
+Turns both programs into RISC OS Absolute files with riscos-crossdev's
+`elf2aif` (which handles programs over 32MB), adds the OpenGFX graphics
+(from Ubuntu's `openttd-opengfx` 7.1 package) and zips `!OpenTTD` with
+riscos-crossdev's `package/rozip.py`, which keeps RISC OS filetypes from
+the `,xxx` suffixes. The sound and music zips are made when you give their
+files:
 
 ```sh
-make -C riscos-openttd/tools/elf2aif GCCSDK_SRC=~/riscos/gccsdk
+build/package.sh path/to/opensfx-1.0.3 path/to/openmsx-0.4.2 path/to/TimGM6mb.sf2
 ```
 
-Then:
-
-```sh
-riscos-openttd/build/package.sh ~/riscos/OpenTTD/build-ro/openttd-stripped \
-    path/to/opengfx-7.1 path/to/opensfx-1.0.3 \
-    path/to/openmsx-0.4.2 path/to/TimGM6mb.sf2
-```
-
-This makes `dist/OpenTTD-14.1-riscos.zip`,
-`dist/OpenTTD-14.1-riscos-OpenSFX.zip` and
-`dist/OpenTTD-14.1-riscos-Music.zip`. It uses GCCSDK's `zip -,`, which stores
-RISC OS filetypes from the `,xxx` filename suffixes.
-
-OpenGFX and OpenSFX can be downloaded from
-<https://cdn.openttd.org/opengfx-releases/> and
-<https://cdn.openttd.org/opensfx-releases/>. OpenMSX is at
+OpenSFX and OpenMSX are at <https://cdn.openttd.org/opensfx-releases/> and
 <https://cdn.openttd.org/openmsx-releases/>. You can get the TimGM6mb
 SoundFont from Debian/Ubuntu's `timgm6mb-soundfont` package or the
-MuseScore repository (see `docs/music/SoundFont-licence`).
+MuseScore repository (see `docs/music/SoundFont-licence`). These two zips
+rarely change, so each release reuses them.
+
+## Builds on GitHub
+
+`.github/workflows/` has riscos-crossdev's two workflows (its
+`docs/CI.md`):
+
+- **`riscos-build.yml`** builds the game in the image named by
+  `.riscos-deps` on every push and pull request, and keeps the zip as a
+  download on the run's page.
+- **`riscos-deps-update.yml`** looks every day for a newer release of
+  anything in `.riscos-deps`. When there is one, it moves the pin, runs
+  `ci/riscos-deps-hook.sh` (which re-exports the SDL overlay from a new
+  riscos-mesa release, or updates riscos-softmidi's line in
+  `build/SOURCES`), builds, and opens a pull request saying what changed
+  and whether the build passed. Nothing is merged or released by itself:
+  merge, test on a Pi, then release.
+
+It needs, in the repository's Settings > Actions > General: "Workflow
+permissions: Read and write" and "Allow GitHub Actions to create and
+approve pull requests".
+
+## Earlier builds
+
+Releases up to 14.1-riscos7 were built with a GCCSDK toolchain made by
+`build/build-toolchain.sh` and the GCCSDK autobuilder. That route has been
+replaced by riscos-crossdev, which builds the same GCCSDK GCC 10.2 with
+the same UnixLib; see the git history for the old scripts and patches.

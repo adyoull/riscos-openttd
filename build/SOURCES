@@ -1,0 +1,11 @@
+# Everything the build downloads: file, sha256, URL. build/env.sh's fetch
+# puts them in $DL (work/dl) and checks them. The riscos-softmidi line
+# follows .riscos-deps: ci/riscos-deps-hook.sh changes it when the pin
+# moves.
+openttd-14.1.tar.gz 56f30930e9bef5b97ebcfc643c35708429a9b1ad80f9ff80e4ead5935b745d82 https://codeload.github.com/OpenTTD/OpenTTD/tar.gz/refs/tags/14.1
+SDL-release-2.26.0.tar.gz f38367892a6f243e8b4010e9e3d9714dc848e11b1a3f69c4af514dc6e7aca7f0 https://codeload.github.com/libsdl-org/SDL/tar.gz/refs/tags/release-2.26.0
+xz-5.4.5.tar.xz da9dec6c12cf2ecf269c31ab65b5de18e8e52b96f35d5bcd08c12b43e6878803 https://github.com/tukaani-project/xz/releases/download/v5.4.5/xz-5.4.5.tar.xz
+lzo2_2.10.orig.tar.gz c0f892943208266f9b6543b3ae308fab6284c5c90e627931446fb49b4221a072 https://archive.ubuntu.com/ubuntu/pool/main/l/lzo2/lzo2_2.10.orig.tar.gz
+libpng1.6_1.6.43.orig.tar.gz fecc95b46cf05e8e3fc8a414750e0ba5aad00d89e9fdf175e94ff041caf1a03a https://archive.ubuntu.com/ubuntu/pool/main/libp/libpng1.6/libpng1.6_1.6.43.orig.tar.gz
+openttd-opengfx_7.1-3_all.deb 2dfaf3a9f97cc3e348e9416dce6ae19ff842230229c31fdc592b7aae8654d61e https://archive.ubuntu.com/ubuntu/pool/universe/o/openttd-opengfx/openttd-opengfx_7.1-3_all.deb
+riscos-softmidi-v0.5.0.tar.gz 1dfd7177b64c7881b70863b47f736a120a21eef5244269f1f5b2d1aa276ebdd6 https://codeload.github.com/adyoull/riscos-softmidi/tar.gz/refs/tags/v0.5.0

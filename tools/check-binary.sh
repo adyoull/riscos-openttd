@@ -21,9 +21,8 @@ set -eu
 . "$(dirname "$0")/../build/env.sh"
 ELF=${1:?usage: tools/check-binary.sh <elf> [<stripped elf>]}
 STRIPPED=${2:-}
-BIN=$GCCSDK_INSTALL_CROSSBIN
-OBJDUMP=$BIN/arm-riscos-gnueabihf-objdump
-NM=$BIN/arm-riscos-gnueabihf-nm
+OBJDUMP=${CROSS}objdump
+NM=${CROSS}nm
 want=${UNIXLIB_TICKER_BLOCK:-640}
 fail=0
 
@@ -54,7 +53,7 @@ else
 fi
 
 if [ -n "$STRIPPED" ]; then
-  n=$(strings -a "$STRIPPED" | grep -c -e "$OPENTTD_SRC" -e "$GCCSDK_SRC" || true)
+  n=$(strings -a "$STRIPPED" | grep -c -e "$OPENTTD_SRC" -e "$WORK" -e "$REPO_DIR" || true)
   if [ "$n" = 0 ]; then echo "OK: no build paths in $(basename "$STRIPPED")"
   else echo "FAIL: $n build paths in $STRIPPED"; fail=1; fi
 fi

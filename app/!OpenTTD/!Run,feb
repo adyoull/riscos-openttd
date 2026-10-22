@@ -38,11 +38,13 @@ RMEnsure SharedSoundBuffer 0.07 RMEnsure DigitalRenderer 0.51 Set OpenTTD$Sound 
 
 | --- Music ------------------------------------------------------------
 | MIDI music is played through a General MIDI SoundFont: the one set up
-| by !MIDISynth (MIDISynth$SoundFont), or a file called SoundFont in
-| here. Without either (or without sound) the game has no music.
+| by !SoftMIDI (SoftMIDI$SoundFont; MIDISynth$SoundFont from !MIDISynth,
+| its older name), or a file called SoundFont in here. Without one (or
+| without sound) the game has no music.
 Set OpenTTD$Music -m null
 IfThere <OpenTTD$Dir>.SoundFont Then Set OpenTTD$Music -m midisynth
 If "<MIDISynth$SoundFont>"<>"" Then IfThere <MIDISynth$SoundFont> Then Set OpenTTD$Music -m midisynth
+If "<SoftMIDI$SoundFont>"<>"" Then IfThere <SoftMIDI$SoundFont> Then Set OpenTTD$Music -m midisynth
 If "<OpenTTD$Sound>"="-s null" Then Set OpenTTD$Music -m null
 
 | --- Online content ---------------------------------------------------

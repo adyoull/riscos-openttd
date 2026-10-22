@@ -6,9 +6,8 @@
 |------|---------|-------|
 | `patches/openttd/` | GPL v2 | A derivative of OpenTTD, which is GPL v2 |
 | `gccsdk-overlay/…/libsdl2/*.p` | zlib (SDL's licence) | Changes to SDL 2.26's RISC OS video driver: windowed mode, full screen, icon bar, text input, direct framebuffer |
-| `patches/unixlib/` | UnixLib's licences, as in each file's header | Changes to GCCSDK UnixLib |
-| `patches/gccsdk/` | GCCSDK's licences | Changes to GCCSDK autobuilder recipes and build files |
-| `app/`, `build/`, `tools/`, docs | GPL v2 | |
+| `app/`, `build/`, `tools/`, `ci/`, docs | GPL v2 | |
+| `.github/workflows/` | MIT | riscos-crossdev's workflows (`ci/`), with this port's build command |
 | `app/!OpenTTD/!Sprites,ff9` | See below | |
 
 The RISC OS changes are original work written for this port, and are applied
@@ -56,8 +55,10 @@ available. Every release lists the exact upstream versions it was built from:
 
 - OpenTTD tag 14.1
 - SDL release-2.26.0
-- GCCSDK commit 64c6f81
-- the autobuilder's library versions
+- riscos-crossdev's toolchain (GCCSDK commit 64c6f81 with riscos-unixlib), at
+  the release in `.riscos-deps`
+- xz 5.4.5, LZO 2.10, libpng 1.6.43, zlib (riscos-crossdev's devkit) and
+  riscos-softmidi, as listed in `build/SOURCES`
 
 It also includes the patches in this repository. The upstream source archives
 are attached to each GitHub release next to the binaries.

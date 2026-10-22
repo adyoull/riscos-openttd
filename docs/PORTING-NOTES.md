@@ -112,14 +112,17 @@ full screen only.
 
 - RISC OS has no General MIDI synthesiser (its MIDI module drives external
   hardware), so the music is synthesised in software. The
-  [riscos-midisynth](https://github.com/adyoull/riscos-midisynth) library
-  wraps TinySoundFont, and is a separate project so other programs can use
-  it too.
+  [riscos-softmidi](https://github.com/adyoull/riscos-softmidi) library
+  (called riscos-midisynth before 0.5.0; the library is still
+  `libmidisynth.a`) wraps TinySoundFont, and is a separate project so other
+  programs can use it too. The build takes it from the release in
+  `.riscos-deps`.
 - The driver passes its render function to `MxSetMusicSource`, so the music
   is mixed with the sound effects and goes out through the same SDL audio
   driver. It has no sound output of its own.
-- SoundFont: `-m midisynth:soundfont=<file>`, else `MIDISynth$SoundFont`
-  (set by `!MIDISynth`), else `<OpenTTD$Dir>.SoundFont` (from the Music zip).
+- SoundFont: `-m midisynth:soundfont=<file>`, else `SoftMIDI$SoundFont`
+  (set by `!SoftMIDI`) or `MIDISynth$SoundFont` (`!MIDISynth`, its old
+  name), else `<OpenTTD$Dir>.SoundFont` (from the Music zip).
   `!Run` only selects the driver when one of these exists. A music driver
   named with `-m` that fails to start stops the whole game, so if the
   SoundFont won't load (for example a big SF3 that doesn't fit in memory)
@@ -127,13 +130,12 @@ full screen only.
 - SF2 and SF3 SoundFonts both work (midisynth 0.3.0). SF3 is decoded into
   memory at start-up, so a large one can use hundreds of MB of the heap.
 
-## UnixLib (`patches/unixlib`)
+## UnixLib
 
-UnixLib changes are now made in the separate riscos-unixlib repository;
-`patches/unixlib/unixlib-riscos.diff` is a copy of its
-`patches/unixlib-riscos.diff` (release UnixLib 5.0.3.3, tag `v5.0.3.3`;
-earlier `22511f2`). The changes OpenTTD
-needed first:
+UnixLib changes are made in the separate riscos-unixlib repository, and
+riscos-crossdev's toolchain is built with its releases (UnixLib 5.0.3.3 in
+riscos-crossdev 1.8.2). Up to 14.1-riscos7 this repository kept a copy of
+the change set in `patches/unixlib`. The changes OpenTTD needed first:
 
 - `wchar/wmissing.c`, `wchar/wctype.c`: implementations of the wide-character
   functions that used to be `abort()` stubs.

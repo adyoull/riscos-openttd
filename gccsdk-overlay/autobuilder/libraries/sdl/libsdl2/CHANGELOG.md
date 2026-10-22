@@ -11,6 +11,10 @@ From here on the `.p` files are an unmodified copy of riscos-mesa's
 changes are recorded there. This file is the history of the OpenTTD copy
 up to that point.
 
+- 2026-10-22: no longer built with the GCCSDK autobuilder's libsdl2
+  recipe: `build/build-deps.sh` applies the `.p` files to SDL 2.26.0 itself,
+  as riscos-mesa does, and configures it without OpenGL. On a new
+  riscos-mesa release, `ci/riscos-deps-hook.sh` copies the overlay again.
 - 2026-10-22: copied again from riscos-mesa `v20.3.5-17` (`97f1bd2`;
   handoffs `2026-10-15-openttd-sdl-overlay-reexport-pointer-margin-2`,
   `2026-10-21-openttd-sdl-overlay-reexport-fb-overlay-3` and

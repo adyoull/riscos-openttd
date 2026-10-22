@@ -8,6 +8,17 @@ SDL2 is listed in more detail here:
 
 ## Unreleased
 
+- Built with riscos-crossdev 1.8.2 (GCCSDK GCC 10.2, UnixLib 5.0.3.3)
+  instead of a toolchain of its own made with the GCCSDK autobuilder, and
+  on GitHub too: `.riscos-deps` pins riscos-crossdev, riscos-mesa (the SDL
+  overlay) and riscos-softmidi, and a daily workflow opens a pull request
+  when one of them has a new release. Every download is checked against
+  `build/SOURCES`. The libraries are built by the port's own scripts:
+  xz 5.4.5, LZO 2.10 and libpng 1.6.43 (the versions the autobuilder
+  used), SDL 2.26.0 with the overlay (still without OpenGL), and zlib from
+  riscos-crossdev's devkit. See BUILDING.md.
+- Music: riscos-midisynth is now riscos-softmidi (0.5.0); `!Run` also
+  looks for `SoftMIDI$SoundFont`, set by `!SoftMIDI`.
 - SDL updated from riscos-mesa 20.3.5-17 (`97f1bd2`): in full screen the
   pointer is kept 2 pixels above the bottom of the screen while it's over
   the game, so an icon bar set to come to the front automatically no

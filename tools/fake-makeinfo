@@ -1,3 +1,0 @@
-#!/bin/sh
-case "$1" in --version) echo "makeinfo (GNU texinfo) 4.2"; exit 0;; esac
-exit 0
