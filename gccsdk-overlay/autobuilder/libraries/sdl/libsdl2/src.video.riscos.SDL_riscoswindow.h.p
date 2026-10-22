@@ -1,7 +1,7 @@
 diff --git src/video/riscos/SDL_riscoswindow.h src/video/riscos/SDL_riscoswindow.h
 --- src/video/riscos/SDL_riscoswindow.h
 +++ src/video/riscos/SDL_riscoswindow.h
-@@ -30,10 +30,59 @@ typedef struct
+@@ -30,10 +30,81 @@ typedef struct
      SDL_Window *window;
      sprite_area *fb_area;
      sprite_header *fb_sprite;
@@ -18,6 +18,20 @@ diff --git src/video/riscos/SDL_riscoswindow.h src/video/riscos/SDL_riscoswindow
 +    int egl_handle;             /* its native window: the Wimp window, or -1 (the screen) */
 +    int egl_rw, egl_rh;         /* the render size it was given */
 +    int gl_pending;             /* a finished frame waits for a vsync (overlay) */
++    /* 2026: a software framebuffer shown through EGL (fb_egl;
++       SDL_HINT_RISCOS_FB_*): the program draws into fb_buf (window->w x
++       window->h, fb_pitch bytes a row); each update copies the changed
++       rectangles into the EGL surface (egl_surface, made without a
++       context and written through EGL_KHR_lock_surface) and shows it.
++       fb_dirty: the rectangles not shown yet (more than one when a frame
++       is held for a vsync); past RISCOS_FB_MAX_RECTS they are merged. */
++    int fb_egl;
++    void *fb_config;            /* the EGLConfig for its surface */
++    void *fb_buf;
++    int fb_pitch;
++#define RISCOS_FB_MAX_RECTS 8
++    SDL_Rect fb_dirty[RISCOS_FB_MAX_RECTS];
++    int fb_ndirty;
 +    /* 2026: render size (SDL_HINT_RISCOS_GL_RENDER_SIZE). When render_w is
 +       set, window->w/h is the render size (what the program sees) and
 +       disp_w/h is the size the program asked for: the desktop window's
@@ -46,6 +60,14 @@ diff --git src/video/riscos/SDL_riscoswindow.h src/video/riscos/SDL_riscoswindow
 +/* 2026: the desktop's mode changed: the desktop window is fitted to it (a
 +   full window to the new screen size) */
 +extern void RISCOS_WindowModeChanged(_THIS);
++/* 2026: keep the pointer off the screen's bottom edge while it is over a
++   full window (so the icon bar's "bring to front automatically" doesn't
++   fire over the game), or give it the whole screen again; and how many
++   OS units the bottom is raised by now (0: the whole screen). */
++extern void RISCOS_KeepPointerOffBottom(_THIS, SDL_bool keep);
++extern int RISCOS_PointerBoxRaised(void);
++/* (a mode change has already reset the box to the whole screen) */
++extern void RISCOS_PointerBoxReset(void);
 +
  extern int RISCOS_CreateWindow(_THIS, SDL_Window * window);
  extern void RISCOS_DestroyWindow(_THIS, SDL_Window * window);

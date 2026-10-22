@@ -11,6 +11,14 @@ From here on the `.p` files are an unmodified copy of riscos-mesa's
 changes are recorded there. This file is the history of the OpenTTD copy
 up to that point.
 
+- 2026-10-22: copied again from riscos-mesa `v20.3.5-17` (`97f1bd2`;
+  handoffs `2026-10-15-openttd-sdl-overlay-reexport-pointer-margin-2`,
+  `2026-10-21-openttd-sdl-overlay-reexport-fb-overlay-3` and
+  `2026-10-22-openttd-mesa-20.3.5-17-released`): the pointer margin over a
+  full window (`SDL$PointerMargin`). The software framebuffer through EGL
+  (`SDL_RISCOS_FB_RENDER_SIZE`, `SDL_RISCOS_FB_OVERLAY`) is all inside
+  `SDL_VIDEO_OPENGL_OSMESA`, so OpenTTD's build gets only new struct fields
+  and hint names; libSDL2.a has no EGL symbols.
 - 2026-10-05: copied again from riscos-mesa `50976c8` (handoff
   `2026-10-04-openttd-sdl-overlay-reexport-8`, covering -6 to -8): the
   window's title bar, scroll bars and border icons are no longer reported

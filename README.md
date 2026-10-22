@@ -73,6 +73,10 @@ Double-click `!OpenTTD`. By default it opens in a 1024x768 desktop window.
 - The scroll wheel zooms the map.
 - In a high resolution desktop mode (EX0 EY0, "180dpi") the window is drawn at
   double size. To change that, see the `SDL$WindowScale` line in `!Run`.
+- In full screen the pointer stops 2 pixels above the bottom of the screen
+  while it's over the game, so the icon bar's "bring to front
+  automatically" option doesn't pop it up over the game (the lowest row
+  still scrolls the map). `*Set SDL$PointerMargin 0` turns this off.
 
 To change how the game starts, edit these lines in `!Run`:
 

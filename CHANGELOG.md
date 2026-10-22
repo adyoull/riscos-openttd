@@ -8,6 +8,12 @@ SDL2 is listed in more detail here:
 
 ## Unreleased
 
+- SDL updated from riscos-mesa 20.3.5-17 (`97f1bd2`): in full screen the
+  pointer is kept 2 pixels above the bottom of the screen while it's over
+  the game, so an icon bar set to come to the front automatically no
+  longer pops up over it (`SDL$PointerMargin`, 0 = off). The release's
+  software-framebuffer-through-EGL option is in riscos-mesa's GL build
+  only, so it isn't in OpenTTD's.
 - Relinked with UnixLib 5.0.3.3 (fixes from a code audit: threads waiting
   inside `read()`/`write()`/stdio, `fork()` with threads, the services
   database, a heap gap that could cap later heap areas, `swprintf`, exit
