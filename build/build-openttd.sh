@@ -23,6 +23,13 @@ elif [ "$(cat "$OPENTTD_SRC/.riscos-patches" 2>/dev/null)" != "$SERIES_SUM" ]; t
   exit 1
 fi
 cd "$OPENTTD_SRC"
+# OpenTTD takes its version from git, or else from .ottdrev, which the
+# release tarballs have and GitHub's archive of the tag doesn't. Without
+# either it calls itself "norev0000" (shown in the title bar, and not
+# network compatible). Write what a git checkout of tag 14.1 gives, marked
+# as modified (2) because of the patches, as the builds up to 14.1-riscos7
+# did: version 14.1, commit 61342620 of 2024-05-03, a stable release tag.
+printf '14.1\t20240503\t2\t61342620bc4c0971b28b3578379b53d04d2f11f1\t1\t1\t2024\n' > .ottdrev
 
 # Host tools (strgen, settingsgen) built for the build machine.
 mkdir -p build-host

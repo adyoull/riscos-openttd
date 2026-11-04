@@ -8,6 +8,10 @@ SDL2 is listed in more detail here:
 
 ## Unreleased
 
+- The title bar says "14.1" again, not "norev0000". The build now starts
+  from GitHub's archive of the 14.1 tag, which has no version file, so
+  `build/build-openttd.sh` writes the `.ottdrev` a git checkout would give.
+  (Without it the game also isn't network compatible with other 14.1s.)
 - SDL 2.32.10 (was 2.26.0), the last SDL 2 release, with riscos-mesa's
   overlay as of its 20.3.5-18e test build (`35cff52`): keyboard focus
   follows the caret, `SDL_WarpMouseInWindow` and relative mouse mode work,
