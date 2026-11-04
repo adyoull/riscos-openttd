@@ -6,7 +6,9 @@ SDL2 is listed in more detail here:
 - [OpenTTD changes](patches/openttd/CHANGELOG.md)
 - [SDL2 changes](gccsdk-overlay/autobuilder/libraries/sdl/libsdl2/CHANGELOG.md)
 
-## Unreleased
+## 14.1-riscos8 (tag `14.1.8`)
+
+Changes since 14.1-riscos7.
 
 - Steadier sound while scrolling and when the game is busy: sound is mixed
   4096 samples at a time (`-s sdl:samples=4096` in `!Run`, as fheroes2
