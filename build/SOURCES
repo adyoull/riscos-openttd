@@ -3,7 +3,7 @@
 # follows .riscos-deps: ci/riscos-deps-hook.sh changes it when the pin
 # moves.
 openttd-14.1.tar.gz 56f30930e9bef5b97ebcfc643c35708429a9b1ad80f9ff80e4ead5935b745d82 https://codeload.github.com/OpenTTD/OpenTTD/tar.gz/refs/tags/14.1
-SDL-release-2.26.0.tar.gz f38367892a6f243e8b4010e9e3d9714dc848e11b1a3f69c4af514dc6e7aca7f0 https://codeload.github.com/libsdl-org/SDL/tar.gz/refs/tags/release-2.26.0
+SDL-release-2.32.10.tar.gz 03f9d7c191a837525c9cda6406af2f2e48be02b5e7eb03d949cc9f1e9ca41c8b https://codeload.github.com/libsdl-org/SDL/tar.gz/refs/tags/release-2.32.10
 xz-5.4.5.tar.xz da9dec6c12cf2ecf269c31ab65b5de18e8e52b96f35d5bcd08c12b43e6878803 https://github.com/tukaani-project/xz/releases/download/v5.4.5/xz-5.4.5.tar.xz
 lzo2_2.10.orig.tar.gz c0f892943208266f9b6543b3ae308fab6284c5c90e627931446fb49b4221a072 https://archive.ubuntu.com/ubuntu/pool/main/l/lzo2/lzo2_2.10.orig.tar.gz
 libpng1.6_1.6.43.orig.tar.gz fecc95b46cf05e8e3fc8a414750e0ba5aad00d89e9fdf175e94ff041caf1a03a https://archive.ubuntu.com/ubuntu/pool/main/libp/libpng1.6/libpng1.6_1.6.43.orig.tar.gz

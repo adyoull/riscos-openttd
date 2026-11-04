@@ -4,6 +4,6 @@
 # a pull request when one of these has a newer release (riscos-crossdev
 # docs/CI.md). ci/riscos-deps-hook.sh updates the other files that follow
 # them: the SDL overlay copy (riscos-mesa) and build/SOURCES (riscos-softmidi).
-riscos-crossdev v1.8.2
+riscos-crossdev v1.10
 riscos-mesa v20.3.5-17
 riscos-softmidi v0.5.0

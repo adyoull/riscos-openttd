@@ -1,6 +1,6 @@
 --- configure.ac
 +++ configure.ac
-@@ -4566,6 +4566,28 @@
+@@ -4587,6 +4587,28 @@
              SOURCES="$SOURCES $srcdir/src/video/riscos/*.c"
              have_video=yes
              SUMMARY_video="${SUMMARY_video} riscos"

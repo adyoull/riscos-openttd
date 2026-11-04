@@ -1,13 +1,27 @@
 diff --git src/video/riscos/SDL_riscoswindow.c src/video/riscos/SDL_riscoswindow.c
 --- src/video/riscos/SDL_riscoswindow.c
 +++ src/video/riscos/SDL_riscoswindow.c
-@@ -24,16 +24,410 @@
+@@ -1,6 +1,6 @@
+ /*
+   Simple DirectMedia Layer
+-  Copyright (C) 1997-2025 Sam Lantinga <slouken@libsdl.org>
++  Copyright (C) 1997-2022 Sam Lantinga <slouken@libsdl.org>
+ 
+   This software is provided 'as-is', without any express or implied
+   warranty.  In no event will the authors be held liable for any damages
+@@ -20,47 +20,774 @@
+ */
+ #include "../../SDL_internal.h"
+ 
+-#ifdef SDL_VIDEO_DRIVER_RISCOS
++#if SDL_VIDEO_DRIVER_RISCOS
  
  #include "SDL_version.h"
  #include "SDL_syswm.h"
 +#include "SDL_hints.h"
  #include "../SDL_sysvideo.h"
  #include "../../events/SDL_mouse_c.h"
++#include "../../events/SDL_keyboard_c.h"
 +#include "../../events/SDL_windowevents_c.h"
  
  
@@ -15,7 +29,8 @@ diff --git src/video/riscos/SDL_riscoswindow.c src/video/riscos/SDL_riscoswindow
  #include "SDL_riscoswindow.h"
 +#include "SDL_riscosevents_c.h"
 +#include "SDL_riscosopengl.h"
-+
+ 
+-int RISCOS_CreateWindow(_THIS, SDL_Window *window)
 +/* 2026: windowed mode.  A window created without SDL_WINDOW_FULLSCREEN is
 +   shown in a Wimp window on the desktop (the program becomes a Wimp task);
 +   full screen windows keep the original behaviour of owning the screen.  */
@@ -404,15 +419,16 @@ diff --git src/video/riscos/SDL_riscoswindow.c src/video/riscos/SDL_riscoswindow
 +
 +    return 0;
 +}
- 
- int
- RISCOS_CreateWindow(_THIS, SDL_Window * window)
++
++int
++RISCOS_CreateWindow(_THIS, SDL_Window * window)
  {
 +    SDL_VideoData *vdata = (SDL_VideoData *) _this->driverdata;
      SDL_WindowData *driverdata;
  
-     driverdata = (SDL_WindowData *) SDL_calloc(1, sizeof(*driverdata));
-@@ -41,21 +435,283 @@ RISCOS_CreateWindow(_THIS, SDL_Window * window)
+-    driverdata = (SDL_WindowData *)SDL_calloc(1, sizeof(*driverdata));
++    driverdata = (SDL_WindowData *) SDL_calloc(1, sizeof(*driverdata));
+     if (!driverdata) {
          return SDL_OutOfMemory();
      }
      driverdata->window = window;
@@ -421,8 +437,6 @@ diff --git src/video/riscos/SDL_riscoswindow.c src/video/riscos/SDL_riscoswindow
 +    RISCOS_GL_ApplyRenderSize(window);
 +#endif
  
--    window->flags |= SDL_WINDOW_FULLSCREEN;
--
 -    SDL_SetMouseFocus(window);
 +    if ((window->flags & SDL_WINDOW_FULLSCREEN) && !RISCOS_IsWindowed(vdata) &&
 +        RISCOS_WantsFullWindow(window)) {
@@ -439,6 +453,7 @@ diff --git src/video/riscos/SDL_riscoswindow.c src/video/riscos/SDL_riscoswindow
 +           until we return to a window or quit (fix 13). */
 +        window->flags |= SDL_WINDOW_FULLSCREEN;
 +        SDL_SetMouseFocus(window);
++        SDL_SetKeyboardFocus(window);   /* the only window there is */
 +    } else {
 +        if (RISCOS_WimpCreateWindow(_this, window, SDL_FALSE) < 0) {
 +            window->driverdata = NULL;
@@ -452,16 +467,19 @@ diff --git src/video/riscos/SDL_riscoswindow.c src/video/riscos/SDL_riscoswindow
      return 0;
  }
  
+-void RISCOS_DestroyWindow(_THIS, SDL_Window *window)
 +/* 2026: SDL only applies SDL_WINDOW_FULLSCREEN after the window has been
 +   created (and after it has switched the screen mode), so this is where a
 +   desktop window turns into a single tasking full screen one and back. */
 +static void
 +RISCOS_WimpDeleteWindow(_THIS)
-+{
+ {
+-    SDL_WindowData *driverdata = (SDL_WindowData *)window->driverdata;
 +    SDL_VideoData *vdata = (SDL_VideoData *) _this->driverdata;
 +    _kernel_swi_regs regs;
 +    int handle;
-+
+ 
+-    if (!driverdata) {
 +    if (!RISCOS_IsWindowed(vdata))
 +        return;
 +#if SDL_VIDEO_OPENGL_OSMESA
@@ -519,6 +537,7 @@ diff --git src/video/riscos/SDL_riscoswindow.c src/video/riscos/SDL_riscoswindow
 +           go back to a window or quit. Never Wimp_CloseDown here (fix 13). */
 +        RISCOS_UpdateEigs(_this);
 +        SDL_SetMouseFocus(window);
++        SDL_SetKeyboardFocus(window);   /* the only window there is */
 +        RISCOS_ApplyPointerVisibility(_this);
 +        {
 +            /* A render size is kept full screen: stretched to the screen
@@ -618,7 +637,7 @@ diff --git src/video/riscos/SDL_riscoswindow.c src/video/riscos/SDL_riscoswindow
 +    SDL_VideoData *vdata = (SDL_VideoData *) _this->driverdata;
 +
 +    if (!RISCOS_IsWindowed(vdata) || vdata->wimp_sdl_window != window)
-+        return;
+         return;
 +    RISCOS_WimpShowWindow(_this, window);
 +}
 +
@@ -650,7 +669,7 @@ diff --git src/video/riscos/SDL_riscoswindow.c src/video/riscos/SDL_riscoswindow
 +        SDL_SetMouseFocus(NULL);
 +        RISCOS_ApplyPointerVisibility(_this);
 +    }
-+    vdata->has_caret = SDL_FALSE;
++    RISCOS_SetCaretFocus(_this, SDL_FALSE);
 +}
 +
 +void
@@ -671,12 +690,12 @@ diff --git src/video/riscos/SDL_riscoswindow.c src/video/riscos/SDL_riscoswindow
 +    _kernel_swi(Wimp_ForceRedraw, &regs, &regs);
 +}
 +
- void
- RISCOS_DestroyWindow(_THIS, SDL_Window * window)
- {
++void
++RISCOS_DestroyWindow(_THIS, SDL_Window * window)
++{
 +    SDL_VideoData *vdata = (SDL_VideoData *) _this->driverdata;
-     SDL_WindowData *driverdata = (SDL_WindowData *) window->driverdata;
- 
++    SDL_WindowData *driverdata = (SDL_WindowData *) window->driverdata;
++
 +#if SDL_VIDEO_OPENGL_OSMESA
 +    /* EGL's surface (and any overlay) first, while its window exists */
 +    if (driverdata)
@@ -695,15 +714,16 @@ diff --git src/video/riscos/SDL_riscoswindow.c src/video/riscos/SDL_riscoswindow
 +        vdata->has_caret = SDL_FALSE;
 +        /* Make sure the pointer is visible again on the desktop. */
 +        _kernel_osbyte(106, 1, 0);
-+    }
-+
-     if (!driverdata)
-         return;
+     }
  
-@@ -63,6 +719,70 @@ RISCOS_DestroyWindow(_THIS, SDL_Window * window)
++    if (!driverdata)
++        return;
++
+     SDL_free(driverdata);
      window->driverdata = NULL;
  }
  
+-SDL_bool RISCOS_GetWindowWMInfo(_THIS, SDL_Window * window, struct SDL_SysWMinfo *info)
 +void
 +RISCOS_WimpQuit(_THIS)
 +{
@@ -768,6 +788,8 @@ diff --git src/video/riscos/SDL_riscoswindow.c src/video/riscos/SDL_riscoswindow
 +    }
 +}
 +
- SDL_bool
- RISCOS_GetWindowWMInfo(_THIS, SDL_Window * window, struct SDL_SysWMinfo *info)
++SDL_bool
++RISCOS_GetWindowWMInfo(_THIS, SDL_Window * window, struct SDL_SysWMinfo *info)
  {
+     if (info->version.major == SDL_MAJOR_VERSION) {
+         info->subsystem = SDL_SYSWM_RISCOS;

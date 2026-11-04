@@ -11,6 +11,14 @@ From here on the `.p` files are an unmodified copy of riscos-mesa's
 changes are recorded there. This file is the history of the OpenTTD copy
 up to that point.
 
+- 2026-11-04: copied again from riscos-mesa `35cff52` (test build 18e,
+  not yet released; handoff `2026-11-03-openttd-sdl-overlay-reexport-sdl-2.32.10-8`):
+  the overlay is now for SDL 2.32.10 (`build/SOURCES` moved too), with
+  keyboard focus, `SDL_WarpMouseInWindow`, relative mouse mode, configure
+  ignoring UnixLib's old `sem_timedwait` stub, and `SDL_SemWaitTimeout`
+  using 5.0.3.6's real one (polling only on ENOSYS). `.riscos-deps` still
+  names v20.3.5-17, riscos-mesa's latest release; its next release brings
+  the same overlay through the hook.
 - 2026-10-22: no longer built with the GCCSDK autobuilder's libsdl2
   recipe: `build/build-deps.sh` applies the `.p` files to SDL 2.26.0 itself,
   as riscos-mesa does, and configures it without OpenGL. On a new

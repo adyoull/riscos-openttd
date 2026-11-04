@@ -39,7 +39,7 @@ applies on its own. `build/package.sh` joins them into one
 3. Patches whose change is already in the new OpenTTD can be dropped from
    `series`.
 
-## SDL 2.26 RISC OS driver (`gccsdk-overlay/…/libsdl2`)
+## SDL 2 RISC OS driver (`gccsdk-overlay/…/libsdl2`)
 
 **The SDL overlay is a copy of riscos-mesa's `patches/sdl2`**, the master copy
 shared with the Mesa (OpenGL) port. `SOURCE` names the riscos-mesa commit and
@@ -93,7 +93,7 @@ full screen only.
 - **Build.** `configure.ac.host.p` makes `arm-riscos-gnueabihf` pick the RISC
   OS driver (it used to match `*-*-gnu*` and build a generic Unix SDL).
 
-## SDL 2.26 RISC OS audio driver (`gccsdk-overlay/…/libsdl2`)
+## SDL 2 RISC OS audio driver (`gccsdk-overlay/…/libsdl2`)
 
 - New `src/audio/riscos/SDL_riscosaudio.c`. It plays 16-bit stereo through
   SharedSoundBuffer and StreamManager (John Duffell's freeware modules,
@@ -133,8 +133,8 @@ full screen only.
 ## UnixLib
 
 UnixLib changes are made in the separate riscos-unixlib repository, and
-riscos-crossdev's toolchain is built with its releases (UnixLib 5.0.3.3 in
-riscos-crossdev 1.8.2). Up to 14.1-riscos7 this repository kept a copy of
+riscos-crossdev's toolchain is built with its releases (UnixLib 5.0.3.6 in
+riscos-crossdev 1.10). Up to 14.1-riscos7 this repository kept a copy of
 the change set in `patches/unixlib`. The changes OpenTTD needed first:
 
 - `wchar/wmissing.c`, `wchar/wctype.c`: implementations of the wide-character

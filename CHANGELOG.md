@@ -8,6 +8,14 @@ SDL2 is listed in more detail here:
 
 ## Unreleased
 
+- SDL 2.32.10 (was 2.26.0), the last SDL 2 release, with riscos-mesa's
+  overlay as of its 20.3.5-18e test build (`35cff52`): keyboard focus
+  follows the caret, `SDL_WarpMouseInWindow` and relative mouse mode work,
+  and SDL's timed waits (its timer thread, for one) sleep in UnixLib's new
+  `sem_timedwait` instead of failing at once and spinning.
+- Built with riscos-crossdev 1.10 (UnixLib 5.0.3.6: working POSIX
+  semaphores, plus 5.0.3.4/5's fixes). Its toolchain has `libdl.a`, so the
+  port's own stub is gone.
 - Built with riscos-crossdev 1.8.2 (GCCSDK GCC 10.2, UnixLib 5.0.3.3)
   instead of a toolchain of its own made with the GCCSDK autobuilder, and
   on GitHub too: `.riscos-deps` pins riscos-crossdev, riscos-mesa (the SDL

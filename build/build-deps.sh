@@ -1,6 +1,6 @@
 #!/bin/bash
 # Build the libraries OpenTTD links against, into $STAGE (work/stage):
-# liblzma (xz), LZO, libpng, SDL 2.26 with the RISC OS drivers, and
+# liblzma (xz), LZO, libpng, SDL 2.32 with the RISC OS drivers, and
 # riscos-softmidi (the music synth). zlib is the one in riscos-crossdev's
 # devkit. Every source is downloaded and checked against build/SOURCES.
 set -euo pipefail
@@ -71,12 +71,12 @@ if ! done_once $F; then
   mark_done $F
 fi
 
-# SDL 2.26.0 with this port's overlay: gccsdk-overlay/.../libsdl2/*.p, a copy
+# SDL 2.32.10 with this port's overlay: gccsdk-overlay/.../libsdl2/*.p, a copy
 # of riscos-mesa's patches/sdl2 at the release in .riscos-deps (see SOURCE
 # there). The copy holds riscos-mesa's OpenGL (OSMesa/EGL) code too, which is
 # only compiled with --enable-video-riscos-osmesa: OpenTTD's SDL is built
 # without it, so no GL ends up in the game.
-F=SDL-release-2.26.0.tar.gz
+F=SDL-release-2.32.10.tar.gz
 OVERLAY=$REPO_DIR/gccsdk-overlay/autobuilder/libraries/sdl/libsdl2
 if ! done_once $F || [ "$(cat "$OVERLAY"/*.p | sha256sum)" != "$(cat "$STAGE/.sdl-overlay" 2>/dev/null)" ]; then
   d=$(unpack $F)
@@ -96,6 +96,16 @@ if ! done_once $F || [ "$(cat "$OVERLAY"/*.p | sha256sum)" != "$(cat "$STAGE/.sd
      echo "SDL was configured with OSMesa GL: OpenTTD's SDL must be built without it" >&2; exit 1
    fi &&
    make -j"$JOBS" && make install)
+  # UnixLib 5.0.3.6 (riscos-crossdev 1.10) has a real sem_timedwait, and SDL
+  # must then use it (its timed waits sleep instead of polling). An older
+  # UnixLib only has a stub, which SDL's configure must not take.
+  semh=$RISCOS_TOOLCHAIN/arm-riscos-gnueabihf/include/semaphore.h
+  uses=$("${CROSS}nm" "$STAGE/lib/libSDL2.a" 2>/dev/null | grep -c " U sem_timedwait$" || true)
+  if grep -q "__stub_sem_timedwait" "$semh" "$(dirname "$semh")/gnu/stubs.h" 2>/dev/null; then
+    [ "$uses" = 0 ] || { echo "SDL uses UnixLib's sem_timedwait stub" >&2; exit 1; }
+  else
+    [ "$uses" -gt 0 ] || { echo "SDL doesn't use UnixLib's sem_timedwait" >&2; exit 1; }
+  fi
   cat "$OVERLAY"/*.p | sha256sum > "$STAGE/.sdl-overlay"
   mark_done $F
 fi
@@ -110,11 +120,6 @@ if ! done_once $F; then
      RO_CFLAGS="-O3 -ffast-math -mtune=cortex-a72 -fstack-clash-protection -ffile-prefix-map=$WORK=work")
   mark_done $F
 fi
-
-# libdl: dlopen etc. that always fail (see build/libdl-stub.c).
-"${CROSS}gcc" -O2 $RISCOS_CFLAGS -c "$REPO_DIR/build/libdl-stub.c" -o "$WORK/deps/libdl-stub.o"
-rm -f "$STAGE/lib/libdl.a"
-"${CROSS}ar" rcs "$STAGE/lib/libdl.a" "$WORK/deps/libdl-stub.o"
 
 echo "Libraries built in $STAGE:"
 ls "$STAGE/lib"/*.a

@@ -17,7 +17,7 @@ riscos-crossdev publishes a container image with the toolchain installed.
 From the top of this repository:
 
 ```sh
-docker run --rm -v "$PWD":/src ghcr.io/adyoull/riscos-crossdev:1.8.2 \
+docker run --rm -v "$PWD":/src ghcr.io/adyoull/riscos-crossdev:1.10 \
   sh -c 'build/build-deps.sh && build/build-openttd.sh && build/package.sh'
 ```
 
@@ -31,7 +31,7 @@ Install riscos-crossdev at the tag in `.riscos-deps` and its prebuilt
 toolchain, then point the scripts at it:
 
 ```sh
-git clone -b v1.8.2 https://github.com/adyoull/riscos-crossdev ~/riscos/riscos-crossdev
+git clone -b v1.10 https://github.com/adyoull/riscos-crossdev ~/riscos/riscos-crossdev
 make -C ~/riscos/riscos-crossdev prebuilt devkit
 export RCD_DIR=~/riscos/riscos-crossdev      # found there by default anyway
 ```
@@ -56,7 +56,7 @@ Into `work/stage`:
 
 - liblzma (xz 5.4.5), LZO 2.10 and libpng 1.6.43, with their own configure;
   zlib is riscos-crossdev's devkit's;
-- SDL 2.26.0 with the overlay in `gccsdk-overlay/autobuilder/libraries/sdl/libsdl2`;
+- SDL 2.32.10 with the overlay in `gccsdk-overlay/autobuilder/libraries/sdl/libsdl2`;
 - riscos-softmidi (`libmidisynth.a`) at the release in `.riscos-deps`, for
   the `midisynth` music driver.
 

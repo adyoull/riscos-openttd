@@ -109,7 +109,7 @@ sources:
 |------|------|
 | `app/!OpenTTD` | The RISC OS application resources (`!Run`, `!Boot`, `!Help`, `!Sprites`) |
 | `patches/openttd` | The patch against OpenTTD tag `14.1` |
-| `gccsdk-overlay/…/libsdl2` | SDL 2.26 RISC OS driver changes (`.p` patches), a copy of riscos-mesa's `patches/sdl2` at the release in `.riscos-deps` |
+| `gccsdk-overlay/…/libsdl2` | SDL 2.32 RISC OS driver changes (`.p` patches), a copy of riscos-mesa's `patches/sdl2` (see `SOURCE` there) |
 
 | `build/` | The build scripts, the CMake toolchain file, and `SOURCES` (every download, with its checksum) |
 | `.riscos-deps`, `.github/`, `ci/` | The releases it's built with, and the builds on GitHub (see BUILDING.md) |

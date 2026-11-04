@@ -1,6 +1,6 @@
 --- configure.ac
 +++ configure.ac
-@@ -4545,6 +4545,10 @@
+@@ -4566,6 +4566,10 @@
          CheckVisibilityHidden
          CheckWerror
          CheckDeclarationAfterStatement

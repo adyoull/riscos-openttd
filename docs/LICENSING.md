@@ -5,7 +5,7 @@
 | Part | Licence | Notes |
 |------|---------|-------|
 | `patches/openttd/` | GPL v2 | A derivative of OpenTTD, which is GPL v2 |
-| `gccsdk-overlay/…/libsdl2/*.p` | zlib (SDL's licence) | Changes to SDL 2.26's RISC OS video driver: windowed mode, full screen, icon bar, text input, direct framebuffer |
+| `gccsdk-overlay/…/libsdl2/*.p` | zlib (SDL's licence) | Changes to SDL 2.32's RISC OS video driver: windowed mode, full screen, icon bar, text input, direct framebuffer |
 | `app/`, `build/`, `tools/`, `ci/`, docs | GPL v2 | |
 | `.github/workflows/` | MIT | riscos-crossdev's workflows (`ci/`), with this port's build command |
 | `app/!OpenTTD/!Sprites,ff9` | See below | |
@@ -27,7 +27,7 @@ The release binary is statically linked, so it contains:
 | Component | Licence |
 |-----------|---------|
 | OpenTTD 14.1 | GPL v2 |
-| SDL 2.26 (with the RISC OS changes) | zlib |
+| SDL 2.32 (with the RISC OS changes) | zlib |
 | GCCSDK UnixLib | Mostly BSD-style and public domain (see its sources) |
 | PThreadTicker module (`app/!OpenTTD/PThrTicker,ffa`, from riscos-unixlib 5.0.1) | Revised BSD (`app/!OpenTTD/docs/PThreadTicker-Licence,fff`) |
 | libstdc++ / libgcc (GCC 10.2) | GPL v3 with the GCC Runtime Library Exception |
@@ -54,7 +54,7 @@ The binary contains GPL code (OpenTTD and LZO), so its source must be
 available. Every release lists the exact upstream versions it was built from:
 
 - OpenTTD tag 14.1
-- SDL release-2.26.0
+- SDL release-2.32.10 (2.26.0 up to 14.1-riscos7)
 - riscos-crossdev's toolchain (GCCSDK commit 64c6f81 with riscos-unixlib), at
   the release in `.riscos-deps`
 - xz 5.4.5, LZO 2.10, libpng 1.6.43, zlib (riscos-crossdev's devkit) and
