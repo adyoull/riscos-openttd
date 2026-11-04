@@ -8,6 +8,15 @@ SDL2 is listed in more detail here:
 
 ## Unreleased
 
+- Steadier sound while scrolling and when the game is busy: sound is mixed
+  4096 samples at a time (`-s sdl:samples=4096` in `!Run`, as fheroes2
+  does), so SDL keeps about 280 ms queued instead of 70 ms, and the game
+  gives the other threads (SDL's sound thread among them) a turn after each
+  frame it has no time to wait in (as VCMI does).
+- Quicker start-up: the application directory was searched twice under
+  two names (`/<OpenTTD$Dir>` and the program's own path), so every base
+  set was checksummed twice; and the NewGRF checksums at start-up (all the
+  downloaded content) now read 32 KB at a time instead of 1 KB.
 - The title bar says "14.1" again, not "norev0000". The build now starts
   from GitHub's archive of the 14.1 tag, which has no version file, so
   `build/build-openttd.sh` writes the `.ottdrev` a git checkout would give.

@@ -29,11 +29,15 @@ RMEnsure PThreadTicker 0.01 RMLoad <OpenTTD$Dir>.PThrTicker
 |   https://orac.co.uk/software/rdpclient/rdpclient.html
 | If they aren't there, DigitalRenderer is used instead, and with
 | neither the game runs silently.
+| The sound is mixed 4096 samples (about 93 ms) at a time, and SDL keeps
+| three of those queued, so it doesn't run dry while the game is busy
+| (scrolling, a big map). Smaller is quicker to respond: change samples=
+| on the "Set OpenTTD$Sound -s sdl" line (1024 is OpenTTD's own default).
 RMEnsure SharedSound 1.07 IfThere System:Modules.SSound Then RMLoad System:Modules.SSound
 RMEnsure StreamManager 0.03 IfThere System:Modules.StreamMan Then RMLoad System:Modules.StreamMan
 RMEnsure SharedSoundBuffer 0.07 IfThere System:Modules.SSBuffer Then RMLoad System:Modules.SSBuffer
 RMEnsure SharedSoundBuffer 0.07 RMEnsure DigitalRenderer 0.51 IfThere System:Modules.DRenderer Then RMLoad System:Modules.DRenderer
-Set OpenTTD$Sound -s sdl
+Set OpenTTD$Sound -s sdl:samples=4096
 RMEnsure SharedSoundBuffer 0.07 RMEnsure DigitalRenderer 0.51 Set OpenTTD$Sound -s null
 
 | --- Music ------------------------------------------------------------

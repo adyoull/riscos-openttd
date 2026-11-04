@@ -13,10 +13,14 @@ in the module), taking the game down and corrupting SparkFS's memory.
 TarScanner::AddFile, which sees every tar before it's opened (and each new
 download straight after it's unpacked), changes &C46 to &FFD.
 
+The installation directory (/<OpenTTD$Dir>) isn't searched as well as the
+program's own directory, which is the same place under another name: every
+base set was found and checksummed twice at start-up.
+
 For OpenTTD 14.1. See docs/PORTING-NOTES.md in riscos-openttd.
 
 diff --git a/src/fileio.cpp b/src/fileio.cpp
-index 15c519b..744b5d8 100644
+index 15c519b..591bcd0 100644
 --- a/src/fileio.cpp
 +++ b/src/fileio.cpp
 @@ -29,6 +29,12 @@
@@ -93,6 +97,20 @@ index 15c519b..744b5d8 100644
  	BPath path;
  	find_directory(B_USER_SETTINGS_DIRECTORY, &path);
  	return std::string(path.Path());
+@@ -954,6 +994,13 @@ void DetermineBasePaths(const char *exe)
+ 	AppendPathSeparator(tmp);
+ 	_searchpaths[SP_INSTALLATION_DIR] = tmp;
+ #endif
++#if defined(__riscos__)
++	/* GLOBAL_DATA_DIR is /<OpenTTD$Dir>, the application directory, which is
++	 * also where the program is (SP_BINARY_DIR). The two names don't match
++	 * as strings, so every base set was found, and its files checksummed,
++	 * twice at start-up. */
++	if (!_searchpaths[SP_BINARY_DIR].empty()) _searchpaths[SP_INSTALLATION_DIR].clear();
++#endif
+ #ifdef WITH_COCOA
+ extern void CocoaSetApplicationBundleDir();
+ 	CocoaSetApplicationBundleDir();
 diff --git a/src/stdafx.h b/src/stdafx.h
 index 9ff07ae..90277ac 100644
 --- a/src/stdafx.h

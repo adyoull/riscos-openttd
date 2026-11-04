@@ -14,15 +14,27 @@ SDL2 video driver behaviour on RISC OS.
   SleepTillNextTick(): that uses std::this_thread::sleep_for, which ends in
   UnixLib's nanosleep and spins in a desktop task, so the game took all the
   processor between frames. SDL_Delay waits in Wimp_PollIdle in a desktop
-  window (whole centiseconds; the rest in steps of at most 4 ms).
+  window (whole centiseconds; the rest in steps of at most 4 ms). When the
+  game is behind (no wait), it calls sched_yield() so SDL's sound thread
+  gets a turn every frame: the sound ran dry while scrolling.
 
 For OpenTTD 14.1. See docs/PORTING-NOTES.md in riscos-openttd.
 
 diff --git a/src/video/sdl2_v.cpp b/src/video/sdl2_v.cpp
-index e57cfa6..e108765 100644
+index e57cfa6..2ed7d82 100644
 --- a/src/video/sdl2_v.cpp
 +++ b/src/video/sdl2_v.cpp
-@@ -181,6 +181,9 @@ bool VideoDriver_SDL_Base::CreateMainWindow(uint w, uint h, uint flags)
+@@ -22,6 +22,9 @@
+ #include "../window_func.h"
+ #include "sdl2_v.h"
+ #include <SDL.h>
++#if defined(__riscos__)
++#	include <sched.h>
++#endif
+ #ifdef __EMSCRIPTEN__
+ #	include <emscripten.h>
+ #	include <emscripten/html5.h>
+@@ -181,6 +184,9 @@ bool VideoDriver_SDL_Base::CreateMainWindow(uint w, uint h, uint flags)
  
  bool VideoDriver_SDL_Base::CreateMainSurface(uint w, uint h, bool resize)
  {
@@ -32,7 +44,7 @@ index e57cfa6..e108765 100644
  	GetAvailableVideoMode(&w, &h);
  	Debug(driver, 1, "SDL2: using mode {}x{}", w, h);
  
-@@ -193,6 +196,7 @@ bool VideoDriver_SDL_Base::CreateMainSurface(uint w, uint h, bool resize)
+@@ -193,6 +199,7 @@ bool VideoDriver_SDL_Base::CreateMainSurface(uint w, uint h, bool resize)
  	 * appropriate event to know this. */
  	if (_fullscreen) _cursor.in_window = true;
  
@@ -40,7 +52,7 @@ index e57cfa6..e108765 100644
  	return true;
  }
  
-@@ -373,8 +377,62 @@ static uint ConvertSdlKeycodeIntoMy(SDL_Keycode kc)
+@@ -373,8 +380,62 @@ static uint ConvertSdlKeycodeIntoMy(SDL_Keycode kc)
  	return key;
  }
  
@@ -103,7 +115,7 @@ index e57cfa6..e108765 100644
  	SDL_Event ev;
  
  	if (!SDL_PollEvent(&ev)) return false;
-@@ -503,9 +561,14 @@ bool VideoDriver_SDL_Base::PollEvent()
+@@ -503,9 +564,14 @@ bool VideoDriver_SDL_Base::PollEvent()
  				/* Ensure pointer lock will not occur. */
  				SDL_SetRelativeMouseMode(SDL_FALSE);
  			} else if (ev.window.event == SDL_WINDOWEVENT_LEAVE) {
@@ -118,7 +130,7 @@ index e57cfa6..e108765 100644
  			}
  			break;
  		}
-@@ -545,6 +608,16 @@ const char *VideoDriver_SDL_Base::Start(const StringList &param)
+@@ -545,6 +611,16 @@ const char *VideoDriver_SDL_Base::Start(const StringList &param)
  
  	this->startup_display = FindStartupDisplay(GetDriverParamInt(param, "display", -1));
  
@@ -135,7 +147,7 @@ index e57cfa6..e108765 100644
  	if (!CreateMainSurface(_cur_resolution.width, _cur_resolution.height, false)) {
  		return SDL_GetError();
  	}
-@@ -564,8 +637,13 @@ const char *VideoDriver_SDL_Base::Start(const StringList &param)
+@@ -564,8 +640,13 @@ const char *VideoDriver_SDL_Base::Start(const StringList &param)
  
  #ifdef __EMSCRIPTEN__
  	this->is_game_threaded = false;
@@ -149,7 +161,7 @@ index e57cfa6..e108765 100644
  #endif
  
  	return nullptr;
-@@ -634,7 +712,27 @@ void VideoDriver_SDL_Base::LoopOnce()
+@@ -634,7 +715,34 @@ void VideoDriver_SDL_Base::LoopOnce()
  
  /* Emscripten is running an event-based mainloop; there is already some
   * downtime between each iteration, so no need to sleep. */
@@ -172,13 +184,20 @@ index e57cfa6..e108765 100644
 +			SDL_Delay(static_cast<Uint32>(wait / 10 * 10));
 +		} else if (wait > 0) {
 +			SDL_Delay(static_cast<Uint32>(std::min<decltype(wait)>(wait, 4)));
++		} else {
++			/* Behind (scrolling, a busy tick): no wait at all, so let the
++			 * other threads have one turn each before the next frame. SDL's
++			 * sound thread otherwise only gets the processor when UnixLib's
++			 * ticker takes it from us, and the sound ran dry while moving
++			 * about. (VCMI does the same after each frame.) */
++			sched_yield();
 +		}
 +	}
 +#elif !defined(__EMSCRIPTEN__)
  	this->SleepTillNextTick();
  #endif
  }
-@@ -662,6 +760,22 @@ bool VideoDriver_SDL_Base::ChangeResolution(int w, int h)
+@@ -662,6 +770,22 @@ bool VideoDriver_SDL_Base::ChangeResolution(int w, int h)
  
  bool VideoDriver_SDL_Base::ToggleFullscreen(bool fullscreen)
  {

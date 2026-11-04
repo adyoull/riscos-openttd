@@ -9,7 +9,8 @@ away the 512-byte buffer and seek again. On a desktop PC that was about
   buffered bytes first. Results are identical (checked over 800,000 random
   operations against the original code). On the PC the startup counts drop
   to about 1,400 seeks and 6,200 reads.
-- The MD5 check of the base set files reads 32 KB at a time instead of 1 KB.
+- The MD5 check of the base set files, and of every NewGRF when they're
+  scanned at start-up, reads 32 KB at a time instead of 1 KB.
 - Each buffer refill calls RiscOsKeepDesktopAlive() (patch 09), so the
   desktop is polled while graphics and sounds load.
 
@@ -31,6 +32,25 @@ index 785dbde..f7e6291 100644
  	MD5Hash digest;
  	size_t len;
  
+diff --git a/src/newgrf_config.cpp b/src/newgrf_config.cpp
+index f3cec8b..8467168 100644
+--- a/src/newgrf_config.cpp
++++ b/src/newgrf_config.cpp
+@@ -286,7 +286,14 @@ static bool CalcGRFMD5Sum(GRFConfig *config, Subdirectory subdir)
+ {
+ 	FILE *f;
+ 	Md5 checksum;
++#if defined(__riscos__)
++	/* Fewer, larger reads: each one is a filing system call, and every
++	 * NewGRF (all the downloaded content too) is read in full at each
++	 * start-up to make its checksum. */
++	uint8_t buffer[32768];
++#else
+ 	uint8_t buffer[1024];
++#endif
+ 	size_t len, size;
+ 
+ 	/* open the file */
 diff --git a/src/random_access_file.cpp b/src/random_access_file.cpp
 index 37f5153..3be85cb 100644
 --- a/src/random_access_file.cpp
