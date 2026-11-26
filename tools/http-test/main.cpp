@@ -6,7 +6,7 @@
 int _debug_net_level = 3;
 int g_max_io = 7;
 void DebugPrint(const char *cat, int level, const std::string &msg) { fprintf(stderr, "[%s:%d] %s\n", cat, level, msg.c_str()); }
-std::string_view GetNetworkRevisionString() { return "14.1"; }
+std::string_view GetNetworkRevisionString() { return "15.3"; }
 struct Cb : HTTPCallback {
 	std::string body; bool done = false, failed = false; bool cancel = false;
 	void OnFailure() override { failed = true; }
@@ -16,7 +16,7 @@ struct Cb : HTTPCallback {
 };
 static int run(const char *name, const std::string &uri, const std::string &post, bool expect_ok, const std::string &expect_body, size_t cancel_after = 0) {
 	Cb cb; cb.cancel_after = cancel_after;
-	NetworkHTTPSocketHandler::Connect(uri, &cb, post);
+	NetworkHTTPSocketHandler::Connect(uri, &cb, std::string(post));
 	auto t0 = std::chrono::steady_clock::now();
 	while (!cb.done && !cb.failed && std::chrono::steady_clock::now() - t0 < std::chrono::seconds(60)) {
 		NetworkHTTPSocketHandler::HTTPReceive();

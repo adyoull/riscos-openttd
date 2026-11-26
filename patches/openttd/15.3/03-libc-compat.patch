@@ -1,0 +1,35 @@
+C library differences.
+
+fdatasync() isn't used when saving the settings file. (14.1's strcasestr
+change isn't needed: OpenTTD 15 doesn't use strcasestr.)
+
+For OpenTTD 15.3. See docs/PORTING-NOTES.md in riscos-openttd.
+
+diff --git a/src/ini.cpp b/src/ini.cpp
+index 4c87f08..c09bdd0 100644
+--- a/src/ini.cpp
++++ b/src/ini.cpp
+@@ -80,7 +80,7 @@ bool IniFile::SaveToDisk(const std::string &filename)
+  * APIs to do so. We only need to flush the data as the metadata itself
+  * (modification date etc.) is not important to us; only the real data is.
+  */
+-#if defined(_POSIX_SYNCHRONIZED_IO) && _POSIX_SYNCHRONIZED_IO > 0
++#if defined(_POSIX_SYNCHRONIZED_IO) && _POSIX_SYNCHRONIZED_IO > 0 && !defined(__riscos__)
+ 	int f = open(file_new.c_str(), O_RDWR);
+ 	if (f < 0) return false;
+ 	int ret = fdatasync(f);
+diff --git a/src/stdafx.h b/src/stdafx.h
+index f264bf6..c45e58a 100644
+--- a/src/stdafx.h
++++ b/src/stdafx.h
+@@ -328,4 +328,10 @@ char (&ArraySizeHelper(T (&array)[N]))[N];
+ #	define IGNORE_UNINITIALIZED_WARNING_STOP
+ #endif
+ 
++#if defined(__riscos__) && defined(fileno)
++/* UnixLib's fileno() macro, ((f)->fd), doesn't take OpenTTD's FileHandle,
++ * which converts to FILE *; the function does. */
++#	undef fileno
++#endif
++
+ #endif /* STDAFX_H */

@@ -1,5 +1,5 @@
-# CMake toolchain file for OpenTTD on RISC OS: riscos-crossdev's GCCSDK
-# GCC 10.2 ($RISCOS_TOOLCHAIN), and the libraries build/build-deps.sh puts
+# CMake toolchain file for OpenTTD on RISC OS: riscos-crossdev's GCC 16
+# toolchain ($RISCOS_TOOLCHAIN), and the libraries build/build-deps.sh puts
 # in $STAGE. (OpenTTD's own CMake files check RISCOS, with the system seen
 # as a GNU one.)
 SET(CMAKE_SYSTEM_NAME GNU)

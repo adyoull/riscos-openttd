@@ -1,0 +1,126 @@
+RISC OS file locations and files.
+
+No XDG directories: the "home" directory is <Choices$Write>, so settings
+and saved games go in <Choices$Write>.OpenTTD. FioFOpenFile doesn't retry
+a missing file in lower case: RISC OS filing systems are case-insensitive,
+so the retry only costs time.
+
+Tar files get the Data filetype before OpenTTD reads them. UnixLib gives a
+new "name/tar" file MimeMap's type for tar, &C46, which SparkFS claims as
+an image filing system; its Tar module then handles the file whenever it's
+looked at, and with OpenTTD's downloaded content it crashed (a data abort
+in the module), taking the game down and corrupting SparkFS's memory.
+TarScanner::AddFile, which sees every tar before it's opened (and each new
+download straight after it's unpacked), changes &C46 to &FFD.
+
+The installation directory (/<OpenTTD$Dir>) isn't searched as well as the
+program's own directory, which is the same place under another name: every
+base set was found and checksummed twice at start-up.
+
+For OpenTTD 15.3. See docs/PORTING-NOTES.md in riscos-openttd.
+
+diff --git a/src/fileio.cpp b/src/fileio.cpp
+index 51b3333..e5d9948 100644
+--- a/src/fileio.cpp
++++ b/src/fileio.cpp
+@@ -27,6 +27,12 @@
+ #include <sys/stat.h>
+ #include <filesystem>
+ 
++#if defined(__riscos__)
++#	include <kernel.h>
++#	include <swis.h>
++#	include <unixlib/local.h>
++#endif
++
+ #include "safeguards.h"
+ 
+ /** Whether the working directory should be scanned. */
+@@ -199,7 +205,7 @@ static std::optional<FileHandle> FioFOpenFileSp(std::string_view filename, std::
+ 	}
+ 
+ 	auto f = FileHandle::Open(buf, mode);
+-#if !defined(_WIN32)
++#if !defined(_WIN32) && !defined(__riscos__) /* RISC OS filing systems are case-insensitive: retrying in lower case only costs time. */
+ 	if (!f.has_value() && strtolower(buf, subdir == NO_DIRECTORY ? 0 : _searchpaths[sp].size() - 1) ) {
+ 		f = FileHandle::Open(buf, mode);
+ 	}
+@@ -437,8 +443,39 @@ static std::string ExtractString(std::span<char> buffer)
+ 	return StrMakeValid(std::string_view(buffer.begin(), buffer.end()));
+ }
+ 
++#if defined(__riscos__)
++/**
++ * RISC OS: give a tar file with the Tar filetype (&C46) the Data filetype.
++ *
++ * UnixLib gives a new "name/tar" file the type MimeMap has for "tar", which
++ * is &C46. SparkFS claims that type as an image filing system, and its Tar
++ * module then handles the file whenever it's looked at; with OpenTTD's
++ * content tars that module has crashed (a data abort inside it), taking the
++ * game and SparkFS's memory with it. OpenTTD reads its tars itself, so they
++ * don't need to be images. The type is changed before the tar is opened.
++ * @param filename The tar file.
++ */
++static void RiscOsTarAsData(const std::string &filename)
++{
++	char ro_name[1024];
++	if (__riscosify_std(filename.c_str(), 0, ro_name, sizeof(ro_name), nullptr) == nullptr) return;
++
++	int object_type, load;
++	if (_swix(OS_File, _INR(0, 1) | _OUT(0) | _OUT(2), 17, ro_name, &object_type, &load) != nullptr) return;
++	if (object_type == 0 || (static_cast<unsigned>(load) >> 20) != 0xFFF) return; // missing, or no filetype
++	if (((load >> 8) & 0xFFF) != 0xC46) return;
++
++	if (_swix(OS_File, _INR(0, 2), 18, ro_name, 0xFFD) == nullptr) {
++		Debug(misc, 1, "Set {} to the Data filetype, so SparkFS doesn't treat it as an image", filename);
++	}
++}
++#endif
++
+ bool TarScanner::AddFile(const std::string &filename, size_t, [[maybe_unused]] const std::string &tar_filename)
+ {
++#if defined(__riscos__)
++	RiscOsTarAsData(filename);
++#endif
+ 	/* No tar within tar. */
+ 	assert(tar_filename.empty());
+ 
+@@ -732,7 +769,10 @@ bool DoScanWorkingDirectory()
+  */
+ static std::string GetHomeDir()
+ {
+-#ifdef __HAIKU__
++#if defined(__riscos__)
++	/* UnixLib maps this to <Choices$Write>, the RISC OS per-user choices location. */
++	return std::string("/<Choices$Write>");
++#elif defined(__HAIKU__)
+ 	BPath path;
+ 	find_directory(B_USER_SETTINGS_DIRECTORY, &path);
+ 	return std::string(path.Path());
+@@ -859,6 +899,13 @@ void DetermineBasePaths(std::string_view exe)
+ 	AppendPathSeparator(tmp);
+ 	_searchpaths[SP_INSTALLATION_DIR] = std::move(tmp);
+ #endif
++#if defined(__riscos__)
++	/* GLOBAL_DATA_DIR is /<OpenTTD$Dir>, the application directory, which is
++	 * also where the program is (SP_BINARY_DIR). The two names don't match
++	 * as strings, so every base set was found, and its files checksummed,
++	 * twice at start-up. */
++	if (!_searchpaths[SP_BINARY_DIR].empty()) _searchpaths[SP_INSTALLATION_DIR].clear();
++#endif
+ #ifdef WITH_COCOA
+ extern void CocoaSetApplicationBundleDir();
+ 	CocoaSetApplicationBundleDir();
+diff --git a/src/stdafx.h b/src/stdafx.h
+index c45e58a..b969703 100644
+--- a/src/stdafx.h
++++ b/src/stdafx.h
+@@ -241,7 +241,7 @@ using namespace std::literals::string_view_literals;
+ #endif
+ 
+ /* Define the the platforms that use XDG */
+-#if defined(WITH_PERSONAL_DIR) && defined(UNIX) && !defined(__APPLE__) && !defined(__EMSCRIPTEN__)
++#if defined(WITH_PERSONAL_DIR) && defined(UNIX) && !defined(__APPLE__) && !defined(__EMSCRIPTEN__) && !defined(__riscos__)
+ #	define USE_XDG
+ #endif
+ 

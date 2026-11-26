@@ -33,13 +33,13 @@ find "$APP/baseset/opengfx" -type l -delete
 cp "$OPENTTD_SRC/COPYING.md" "$APP/docs/COPYING,fff"
 cp "$OPENTTD_SRC/README.md" "$APP/docs/README,fff"
 # All the OpenTTD patches in one file, for the app and the release page.
-cat $(openttd_patches) > "$OUT/openttd-14.1-riscos.patch"
-cp "$OUT/openttd-14.1-riscos.patch" "$APP/docs/riscos-patch,fff"
+cat $(openttd_patches) > "$OUT/openttd-$OPENTTD_VERSION-riscos.patch"
+cp "$OUT/openttd-$OPENTTD_VERSION-riscos.patch" "$APP/docs/riscos-patch,fff"
 ROZIP="python3 $RCD_DIR/package/rozip.py"
-$ROZIP "$OUT/OpenTTD-14.1-riscos.zip" -C "$OUT" '!OpenTTD'
+$ROZIP "$OUT/OpenTTD-$OPENTTD_VERSION-riscos.zip" -C "$OUT" '!OpenTTD'
 if [ -n "$SFX" ]; then
   mkdir -p "$OUT/sfx/!OpenTTD/baseset"; cp -a "$SFX" "$OUT/sfx/!OpenTTD/baseset/opensfx"
-  $ROZIP "$OUT/OpenTTD-14.1-riscos-OpenSFX.zip" -C "$OUT/sfx" '!OpenTTD'
+  $ROZIP "$OUT/OpenTTD-$OPENTTD_VERSION-riscos-OpenSFX.zip" -C "$OUT/sfx" '!OpenTTD'
 fi
 if [ -n "$MSX" ]; then
   # The music: OpenMSX, plus a General MIDI SoundFont (e.g. TimGM6mb) for
@@ -50,6 +50,6 @@ if [ -n "$MSX" ]; then
   cp "$SF2" "$M/SoundFont,ffd"
   cp "$REPO_DIR/docs/music/OpenMSX-copyright" "$M/docs/OpenMSX-copyright,fff"
   cp "$REPO_DIR/docs/music/SoundFont-licence" "$M/docs/SoundFont-licence,fff"
-  $ROZIP "$OUT/OpenTTD-14.1-riscos-Music.zip" -C "$OUT/msx" '!OpenTTD'
+  $ROZIP "$OUT/OpenTTD-$OPENTTD_VERSION-riscos-Music.zip" -C "$OUT/msx" '!OpenTTD'
 fi
 ls -l "$OUT"/*.zip

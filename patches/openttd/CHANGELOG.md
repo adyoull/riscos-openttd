@@ -1,7 +1,38 @@
 # OpenTTD changes for RISC OS
 
-Changes made by the patches in `14.1/` to OpenTTD 14.1, newest first.
+Changes made by the patches in `15.3/` to OpenTTD 15.3 (and before that in
+`14.1/` to OpenTTD 14.1), newest first.
 See [PORTING-NOTES](../../docs/PORTING-NOTES.md) for more detail.
+
+## 2026-11-26: OpenTTD 15.3 (`15.3/`)
+
+The 14.1 patches, ported to OpenTTD 15.3 and built with GCC 16. Each still
+does what its description says; what changed:
+
+- `02-network-compat.patch`: `FD_ZERO` is redefined without `memset`
+  (UnixLib's calls it, and OpenTTD 15's `safeguards.h` forbids it).
+- `03-libc-compat.patch`: the `strcasestr` part is gone (OpenTTD 15
+  doesn't use it). New: UnixLib's `fileno()` macro is undefined, as it
+  doesn't take OpenTTD 15's `FileHandle`.
+- `05-command-line.patch`: works on OpenTTD 15's span of arguments.
+- `07-sprite-cache.patch`: OpenTTD 15 has no single cache block any more;
+  the 128MB limit is now applied where it frees old sprites.
+- `09-sdl2-video.patch`: `strncmp` replaced (forbidden by `safeguards.h`).
+- `11-midisynth-music.patch`: OpenTTD 15's driver interface.
+- `12-neon-blitter.patch`: OpenTTD 15's blitter interface (`SpriteType`,
+  `SpriteAllocator`, enum classes, `EnumBitSet` flags). Still bit-identical
+  to 32bpp-sse4.
+- `13-file-read-speed.patch`: OpenTTD 15's `ReadBlock` already uses the
+  buffered bytes; the bigger buffer, seeking inside it and desktop polling
+  remain.
+- `14-https-acornssl.patch`: `Connect(std::string_view, HTTPCallback *,
+  std::string &&)`; `atoi`/`strtoul` replaced by `std::from_chars`,
+  `memcpy` by `std::copy_n`.
+- `15-riscos-error-report.patch`: the "Out of memory" backtrace is gone
+  (OpenTTD 15 has no `MallocError`).
+- `16-map-memory-check.patch`: `uint8_t` for `byte`, and its includes.
+- New `17-fmt-digits-align.patch`: fmt's two-digit table is word aligned,
+  so riscos-crossdev's `check-data-align.py` passes with GCC 16.
 
 ## 2026-10-03
 

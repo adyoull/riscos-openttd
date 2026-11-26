@@ -1,0 +1,28 @@
+A smaller sprite cache.
+
+RISC OS doesn't overcommit memory. OpenTTD 15 allocates each sprite on its
+own and frees the least recently used ones once the cache is bigger than
+sprite_cache_size_px, which for 32bpp is 512MB by default: more than a
+Raspberry Pi usually has free. The cache is kept to 128MB, as the 14.1
+port's was. (14.1's change to how the one big cache block was allocated
+isn't needed: OpenTTD 15 has no such block.)
+
+For OpenTTD 15.3. See docs/PORTING-NOTES.md in riscos-openttd.
+
+diff --git a/src/spritecache.cpp b/src/spritecache.cpp
+index f26695a..a26a282 100644
+--- a/src/spritecache.cpp
++++ b/src/spritecache.cpp
+@@ -763,6 +763,12 @@ void IncreaseSpriteLRU()
+ {
+ 	int bpp = BlitterFactory::GetCurrentBlitter()->GetScreenDepth();
+ 	uint target_size = (bpp > 0 ? _sprite_cache_size * bpp / 8 : 1) * 1024 * 1024;
++#if defined(__riscos__)
++	/* RISC OS has no memory overcommit, and the default 32bpp cache may grow
++	 * to 512 MiB: more than a Raspberry Pi usually has free. Keep it to
++	 * 128 MiB, as the 14.1 port did. */
++	target_size = std::min<uint>(target_size, 128 * 1024 * 1024);
++#endif
+ 	if (_spritecache_bytes_used > target_size) {
+ 		DeleteEntriesFromSpriteCache(_spritecache_bytes_used - target_size + 512 * 1024);
+ 	}

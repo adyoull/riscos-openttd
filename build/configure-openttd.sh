@@ -1,5 +1,5 @@
 #!/bin/bash
-# Configure OpenTTD 14.1 for RISC OS (riscos-crossdev's GCCSDK GCC 10.2,
+# Configure OpenTTD for RISC OS (riscos-crossdev's GCC 16 toolchain,
 # arm-riscos-gnueabihf), statically linked against the libraries in
 # $STAGE. Needs the host tools build (build-host) first; see
 # build/build-openttd.sh.
@@ -13,7 +13,7 @@ else
 fi
 # Record source paths in the program (assert messages, __FILE__) relative to
 # a neutral name rather than the build machine's directory.
-ARCHFLAGS="$ARCHFLAGS -ffile-prefix-map=$OPENTTD_SRC=openttd-14.1"
+ARCHFLAGS="$ARCHFLAGS -ffile-prefix-map=$OPENTTD_SRC=openttd-$OPENTTD_VERSION"
 mkdir -p "$OPENTTD_SRC/$BDIR"
 cd "$OPENTTD_SRC/$BDIR"
 rm -f CMakeCache.txt

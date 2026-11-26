@@ -2,11 +2,19 @@
 # be set in the environment first.
 #
 # The build uses riscos-crossdev (github.com/adyoull/riscos-crossdev): its
-# toolchain (GCCSDK GCC 10.2 with riscos-unixlib), elf2aif and checks. In
-# its container image (ghcr.io/adyoull/riscos-crossdev:<version>, which
-# GitHub's builds use) it's at /opt/riscos-crossdev and RCD_DIR is set. On
-# your own machine, clone riscos-crossdev at the tag in .riscos-deps, run
-# `make prebuilt` there, and set RCD_DIR to it.
+# optional GCC 16 toolchain (OpenTTD 15 is C++20, which GCC 10.2 doesn't
+# fully have), riscos-unixlib, elf2aif and checks. In its container image
+# (ghcr.io/adyoull/riscos-crossdev:<version>, which GitHub's builds use)
+# riscos-crossdev is at /opt/riscos-crossdev and RCD_DIR is set. On your own
+# machine, clone riscos-crossdev at the tag in .riscos-deps and set RCD_DIR
+# to it.
+#
+# The GCC 16 toolchain is the one named in riscos-crossdev's
+# toolchain/gcc16/PREBUILT. Set OPENTTD_TOOLCHAIN to where you have it
+# unpacked; otherwise build/get-toolchain.sh downloads it into
+# $WORK/toolchain-gcc16 (the build scripts run it). RISCOS_TOOLCHAIN is set
+# from it: riscos-crossdev's image sets RISCOS_TOOLCHAIN to its default
+# GCC 10.2 toolchain, which can't build OpenTTD 15.
 REPO_DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
 if [ -z "${RCD_DIR:-}" ]; then
   for d in /opt/riscos-crossdev "$HOME/riscos/riscos-crossdev"; do
@@ -15,17 +23,29 @@ if [ -z "${RCD_DIR:-}" ]; then
 fi
 [ -f "${RCD_DIR:-}/env.sh" ] || {
   echo "riscos-crossdev not found: set RCD_DIR (see BUILDING.md)" >&2; exit 1; }
-. "$RCD_DIR/env.sh"     # RISCOS_TOOLCHAIN, RISCOS_HOST, PATH
-CROSS=$RISCOS_TOOLCHAIN/bin/$RISCOS_HOST-
-[ -x "${CROSS}gcc" ] || {
-  echo "no toolchain in $RISCOS_TOOLCHAIN: run 'make prebuilt' in $RCD_DIR" >&2; exit 1; }
-
 : "${WORK:=$REPO_DIR/work}"                     # everything the build makes
 : "${DL:=$WORK/dl}"                             # downloaded sources (cache this)
+: "${OPENTTD_TOOLCHAIN:=$WORK/toolchain-gcc16}"  # GCC 16 (see above)
+RISCOS_TOOLCHAIN=$OPENTTD_TOOLCHAIN
+export OPENTTD_TOOLCHAIN RISCOS_TOOLCHAIN
+. "$RCD_DIR/env.sh"     # RISCOS_HOST, RISCOS_DEVKIT, PATH
+CROSS=$RISCOS_TOOLCHAIN/bin/$RISCOS_HOST-
+
 : "${STAGE:=$WORK/stage}"                       # the libraries OpenTTD links with
-: "${OPENTTD_SRC:=$WORK/openttd-14.1}"          # OpenTTD 14.1 with the patches
-: "${OPENTTD_PATCHES:=$REPO_DIR/patches/openttd/14.1}"
-export REPO_DIR RCD_DIR CROSS WORK DL STAGE OPENTTD_SRC OPENTTD_PATCHES
+: "${OPENTTD_VERSION:=15.3}"
+: "${OPENTTD_SRC:=$WORK/openttd-$OPENTTD_VERSION}"  # OpenTTD with the patches
+: "${OPENTTD_PATCHES:=$REPO_DIR/patches/openttd/$OPENTTD_VERSION}"
+export REPO_DIR RCD_DIR CROSS WORK DL STAGE OPENTTD_VERSION OPENTTD_SRC OPENTTD_PATCHES
+
+# The toolchain must be GCC 16 (build/get-toolchain.sh installs it).
+check_toolchain() {
+  [ -x "${CROSS}gcc" ] || {
+    echo "no toolchain in $RISCOS_TOOLCHAIN: run build/get-toolchain.sh" >&2; exit 1; }
+  case $("${CROSS}gcc" -dumpversion) in
+    1[6-9]*|[2-9][0-9]*) ;;
+    *) echo "$RISCOS_TOOLCHAIN is GCC $("${CROSS}gcc" -dumpversion): OpenTTD $OPENTTD_VERSION needs riscos-crossdev's GCC 16 toolchain (build/get-toolchain.sh)" >&2; exit 1 ;;
+  esac
+}
 
 # The release of one of the owner's repositories the port is built with,
 # from .riscos-deps (riscos-softmidi -> v0.5.0).

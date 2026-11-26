@@ -1,6 +1,6 @@
 # OpenTTD for RISC OS
 
-A port of [OpenTTD](https://www.openttd.org/) 14.1, the open source transport
+A port of [OpenTTD](https://www.openttd.org/) 15.3, the open source transport
 simulation game based on Transport Tycoon Deluxe, to RISC OS 5.
 
 It runs full screen or in a desktop window, with sound, and includes the free
@@ -11,10 +11,10 @@ RISC OS Absolute files, so `!SharedLibs` isn't needed.
 
 Ready-to-run builds are on the [Releases](https://github.com/adyoull/riscos-openttd/releases) page:
 
-- `OpenTTD-14.1-riscos.zip`: the `!OpenTTD` application with OpenGFX.
-- `OpenTTD-14.1-riscos-OpenSFX.zip`: the OpenSFX sound effects. Unpack it over
+- `OpenTTD-15.3-riscos.zip`: the `!OpenTTD` application with OpenGFX.
+- `OpenTTD-15.3-riscos-OpenSFX.zip`: the OpenSFX sound effects. Unpack it over
   `!OpenTTD`.
-- `OpenTTD-14.1-riscos-Music.zip`: the OpenMSX music and a General MIDI
+- `OpenTTD-15.3-riscos-Music.zip`: the OpenMSX music and a General MIDI
   SoundFont to play it with. Unpack it over `!OpenTTD`.
 
 Unpack the zips on RISC OS (for example with SparkFS or !InfoZip) so the
@@ -108,7 +108,7 @@ sources:
 | Path | What |
 |------|------|
 | `app/!OpenTTD` | The RISC OS application resources (`!Run`, `!Boot`, `!Help`, `!Sprites`) |
-| `patches/openttd` | The patch against OpenTTD tag `14.1` |
+| `patches/openttd` | The patches against OpenTTD tag `15.3` (and the older ones for `14.1`) |
 | `gccsdk-overlay/…/libsdl2` | SDL 2.32 RISC OS driver changes (`.p` patches), a copy of riscos-mesa's `patches/sdl2` (see `SOURCE` there) |
 
 | `build/` | The build scripts, the CMake toolchain file, and `SOURCES` (every download, with its checksum) |
@@ -117,7 +117,7 @@ sources:
 | `tools/` | Checks on the built program, and tests for the NEON blitter and the HTTPS code |
 
 It's built with [riscos-crossdev](https://github.com/adyoull/riscos-crossdev)'s
-toolchain (GCCSDK GCC 10.2 with riscos-unixlib's UnixLib). SDL2, UnixLib and
+optional GCC 16 toolchain (OpenTTD 15 needs C++20), with riscos-unixlib's UnixLib. SDL2, UnixLib and
 the other libraries are linked into the OpenTTD program itself: nothing on
 your machine is replaced, and other programs aren't affected.
 

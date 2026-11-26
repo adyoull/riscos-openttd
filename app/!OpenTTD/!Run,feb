@@ -1,5 +1,5 @@
-| !Run for !OpenTTD - RISC OS port of OpenTTD 14.1
-| Built with GCCSDK GCC 10.2 (arm-riscos-gnueabihf), statically linked and
+| !Run for !OpenTTD - RISC OS port of OpenTTD 15.3
+| Built with GCC 16.2 (arm-riscos-gnueabihf), statically linked and
 | converted to Absolute (AIF) files, so !SharedLibs isn't needed.
 
 Set OpenTTD$Dir <Obey$Dir>

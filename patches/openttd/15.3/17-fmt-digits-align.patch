@@ -1,0 +1,31 @@
+fmt's two-digit table on a word boundary.
+
+fmt 11 declares the 201-byte table behind digits2() alignas(2). GCC 16
+keeps exactly that, so the table can sit at an address that is a multiple
+of 2 but not 4, and riscos-crossdev's check-data-align.py (every data
+object of 4 bytes or more on a word boundary, since a Pi aborts on an
+unaligned word load) stops the build. fmt only reads it two bytes at a
+time, so it would most likely work, but the table is made alignas(4) on
+RISC OS so the check holds without exceptions. (GCC 10 aligned it to 4
+anyway, and OpenTTD 14.1's fmt 10 used a string literal.)
+
+For OpenTTD 15.3. See docs/PORTING-NOTES.md in riscos-openttd.
+
+diff --git a/src/3rdparty/fmt/format.h b/src/3rdparty/fmt/format.h
+index 287e716..d5a30b2 100644
+--- a/src/3rdparty/fmt/format.h
++++ b/src/3rdparty/fmt/format.h
+@@ -996,7 +996,13 @@ using uint64_or_128_t = conditional_t<num_bits<T>() <= 64, uint64_t, uint128_t>;
+ inline auto digits2(size_t value) -> const char* {
+   // Align data since unaligned access may be slower when crossing a
+   // hardware-specific boundary.
++#if defined(__riscos__)
++  // RISC OS: word aligned, like every data object of 4 bytes or more, so
++  // riscos-crossdev's check-data-align.py passes (GCC 10 aligned it so).
++  alignas(4) static const char data[] =
++#else
+   alignas(2) static const char data[] =
++#endif
+       "0001020304050607080910111213141516171819"
+       "2021222324252627282930313233343536373839"
+       "4041424344454647484950515253545556575859"

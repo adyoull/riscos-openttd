@@ -1,43 +1,83 @@
 # Porting notes
 
-## OpenTTD patches (`patches/openttd/14.1/`)
+## OpenTTD patches (`patches/openttd/15.3/`)
 
 The changes to OpenTTD are a series of small patches, one per change, applied
 in the order listed in `series`. Each one starts with a few lines saying what
-it does and why. No file is changed by more than one patch, so each patch also
-applies on its own. `build/package.sh` joins them into one
-`openttd-14.1-riscos.patch` for the release page and the app's `docs`.
+it does and why. Each patch also applies on its own (only `src/stdafx.h` is
+changed by two, 03 and 04, in different places). `build/package.sh` joins
+them into one `openttd-15.3-riscos.patch` for the release page and the app's
+`docs`. `OTTDREV` there gives the version, date and commit of the OpenTTD tag,
+for the `.ottdrev` file `build/build-openttd.sh` writes (GitHub's archive of
+a tag has none, and the game would call itself "norev0000").
+
+The 14.1 patches (`patches/openttd/14.1/`) are kept for reference: releases
+up to 14.1-riscos8 were built with them, with GCC 10.2.
 
 | Patch | File | Change |
 |-------|------|--------|
 | 01 | `cmake/CompileFlags.cmake` | No `-rdynamic` (GCCSDK doesn't support it) |
-| 02 | `src/network/core/os_abstraction.h`, `host.cpp` | No `ifaddrs.h`. `AI_ADDRCONFIG` fallback. Broadcast discovery uses `INADDR_BROADCAST` |
-| 03 | `src/string_func.h` | UnixLib has `strcasestr` |
+| 02 | `src/network/core/os_abstraction.h`, `host.cpp` | No `ifaddrs.h`. `AI_ADDRCONFIG` fallback. Broadcast discovery uses `INADDR_BROADCAST`. `FD_ZERO` without the `memset` that `safeguards.h` forbids |
 | 03 | `src/ini.cpp` | No `fdatasync` |
+| 03 | `src/stdafx.h` | UnixLib's `fileno()` macro is undefined, so the function is used: the macro doesn't take OpenTTD 15's `FileHandle` |
 | 04 | `src/stdafx.h`, `src/fileio.cpp` | No XDG directories. The home directory is `<Choices$Write>`. No lower-case retry in `FioFOpenFile` (file probing is slow on RISC OS). Tar files with the Tar filetype (&C46) get Data (&FFD) before they are read, so SparkFS doesn't treat them as images (its Tar module crashed on OpenTTD's downloads) The installation directory isn't searched as well as the program's own (the same place under another name: base sets were checksummed twice). |
 | 05 | `src/openttd.cpp` | Logs its arguments to stderr and ignores stray non-option arguments (from `!Run`) |
 | 06 | `src/os/unix/unix_main.cpp` | The C heap is a dynamic area named "OpenTTD Heap" (512MB asked for; RISC OS 5 gives a dynamic area at most 128MB, and UnixLib 5.0.3.1 continues the heap in further areas straight after it) |
-| 07 | `src/spritecache.cpp` | Sprite cache capped at 128 MiB, and allocated without the 1.5x probe |
+| 07 | `src/spritecache.cpp` | Sprite cache capped at 128 MiB (OpenTTD 15 allocates sprites one by one, up to 512 MiB at 32bpp by default) |
 | 08 | `src/textfile_gui.cpp` | `GetTextfile` results are cached. Only `.txt`/`.md` are probed on RISC OS (this was a multi-second pause opening Game Options) |
 | 09 | `src/video/sdl2_v.cpp` | Memory report every 10s with `-d driver=1` (`OpenTTD$Debug` in `!Run`). `-v sdl:windowed` / `sdl:fullscreen`. Full screen toggles by recreating the window. Drawing from the game thread is off by default. `RiscOsKeepDesktopAlive()` polls the Wimp during loading. The main loop waits with `SDL_Delay` (Wimp_PollIdle in a window) instead of `sleep_for`, which spins in UnixLib With no time to wait between frames, `sched_yield()` gives SDL's sound thread a turn. |
 | 10 | `src/video/sdl2_default_v.cpp` | The RISC OS screen is XBGR8888: draw into an XRGB8888 shadow surface and swap red and blue one word at a time in `Paint()` |
 | 11 | `src/music/midisynth_m.cpp`, `CMakeLists.txt` | New `midisynth` music driver: renders MIDI through a SoundFont with the [midisynth](https://github.com/adyoull/riscos-midisynth) library, into OpenTTD's own mixer (like the FluidSynth driver). Built when `libmidisynth.a` is found |
-| 12 | `src/blitter/32bpp_neon.cpp/.hpp`, `src/blitter/CMakeLists.txt` | Optional `32bpp-neon` blitter: a NEON port of the SSE blitter, bit-identical to `32bpp-sse4`. Only in NEON builds; chosen with `-b 32bpp-neon` (`OpenTTD$Blitter` in `!Run`) |
+| 12 | `src/blitter/32bpp_neon.cpp/.hpp`, `src/blitter/CMakeLists.txt` | Optional `32bpp-neon` blitter: a NEON port of the SSE blitter, bit-identical to `32bpp-sse4` (`tools/blitter-test/run.sh`). Only in NEON builds; chosen with `-b 32bpp-neon` (`OpenTTD$Blitter` in `!Run`) |
 | 13 | `src/random_access_file.cpp/.h`, `src/gfxinit.cpp`, `src/newgrf_config.cpp` | Faster startup: 32 KB file buffer that seeks inside itself, 32 KB MD5 reads (base sets and the NewGRF scan), and the desktop is polled while files load (`RiscOsKeepDesktopAlive()` in `sdl2_v.cpp`) |
 | 14 | `src/network/core/http_riscos.cpp`, `src/network/core/CMakeLists.txt` | HTTPS for online content (and the opt-in survey) through the AcornSSL module instead of libcurl: a small HTTP/1.1 client on its own thread, non-blocking throughout. Tested on Linux with `tools/http-test/run.sh` |
-| 15 | `src/os/unix/crashlog_unix.cpp`, `src/core/alloc_func.cpp` | Crashes write the RISC OS error (for an abort, where it happened) and UnixLib's backtrace of every thread to `OpenTTDlog`; a fatal "Out of memory" also writes a backtrace from where it happened |
+| 15 | `src/os/unix/crashlog_unix.cpp` | Crashes write the RISC OS error (for an abort, where it happened) and UnixLib's backtrace of every thread to `OpenTTDlog` |
 | 16 | `src/saveload/map_sl.cpp` | A map too big for the free memory fails to load with a message instead of stopping the game (the tile arrays are tried first) |
+| 17 | `src/3rdparty/fmt/format.h` | fmt's 201-byte `digits2()` table is `alignas(4)` instead of `alignas(2)`, so riscos-crossdev's data-alignment check passes (GCC 16 keeps the `alignas(2)`; GCC 10 raised it to 4) |
 
 ### Moving to a newer OpenTTD
 
-1. Make `patches/openttd/<version>/` with a copy of the 14.1 patches and
-   `series`, and set `OPENTTD_REF` and `OPENTTD_PATCHES` (see `build/env.sh`).
+1. Make `patches/openttd/<version>/` with a copy of the current patches,
+   `series` and an `OTTDREV` for the new tag (version, date of the tag's
+   commit as YYYYMMDD, its full hash), add the source to `build/SOURCES`,
+   and set `OPENTTD_VERSION` in `build/env.sh`.
 2. Run `build/build-openttd.sh`. It stops at the first patch that doesn't
    apply. Apply that one by hand (`git apply --reject` shows the parts that
    failed), make the changes it describes, then save it again with
    `git diff -- <its files>` below its description.
 3. Patches whose change is already in the new OpenTTD can be dropped from
    `series`.
+4. Check the NEON blitter with `tools/blitter-test/run.sh` and the HTTPS
+   driver with `tools/http-test/run.sh`.
+
+A quicker way for many conflicts: apply the old patches as commits on the
+old tag in a git clone of OpenTTD, `git cherry-pick` them one by one onto
+the new tag (git's three-way merge places most hunks itself), fix what's
+left, and write each commit back out below its description.
+
+### From 14.1 to 15.3 (2026-11-26)
+
+- **Compiler:** OpenTTD 15 is C++20, which GCC 10.2 only partly has, so
+  the build uses riscos-crossdev's optional GCC 16 toolchain (from
+  riscos-crossdev 1.14, its `toolchain/gcc16/PREBUILT`, installed by
+  `build/get-toolchain.sh`). The libraries (xz, LZO, libpng, SDL,
+  riscos-softmidi) are built with it too. It links the same UnixLib
+  5.0.3.12 as the default toolchain.
+- **Dropped:** 03's `strcasestr` part (OpenTTD 15 doesn't use it), 07's
+  allocation of one big cache block (OpenTTD 15 has none), and 15's
+  "Out of memory" backtrace (no `MallocError` any more).
+- **Changed for OpenTTD 15's interfaces:** the music driver (`Start`
+  returns `std::optional<std::string_view>`, factories return
+  `std::unique_ptr`), the NEON blitter (`SpriteType` and `SpriteAllocator`
+  in `Encode`, `BlitterMode` and `ZoomLevel` are enum classes, sprite flags
+  are an `EnumBitSet`), the HTTPS driver (`Connect` takes a
+  `std::string_view` and a `std::string &&`), the command line (`GetOptData`
+  works on a span of arguments) and the file reader (`FileHandle`).
+- **New:** `safeguards.h` now also forbids `memset`, `strncmp`, `atoi` and
+  `strtoul`, which RISC OS code (UnixLib's `FD_ZERO` included) used.
+- **Upstream already does:** 13's "use the buffered bytes first" in
+  `RandomAccessFile::ReadBlock`; only the bigger buffer, the seek inside it
+  and the desktop polling are still ours.
 
 ## SDL 2 RISC OS driver (`gccsdk-overlay/…/libsdl2`)
 

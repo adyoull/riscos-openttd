@@ -5,6 +5,7 @@
 # devkit. Every source is downloaded and checked against build/SOURCES.
 set -euo pipefail
 . "$(dirname "$0")/env.sh"
+"$REPO_DIR/build/get-toolchain.sh"
 mkdir -p "$WORK/deps" "$STAGE/include" "$STAGE/lib"
 LIB_CFLAGS="-O2 $RISCOS_CFLAGS -ffile-prefix-map=$WORK=work"
 export PKG_CONFIG_LIBDIR="$STAGE/lib/pkgconfig" PKG_CONFIG_PATH=
@@ -24,7 +25,7 @@ unpack() {
 
 # done_once NAME: true if NAME was built already with this build/SOURCES line
 # (so re-running the script only builds what's new).
-stamp() { awk -v f="$1" '$1 == f' "$REPO_DIR/build/SOURCES"; cat "$REPO_DIR/build/build-deps.sh" | sha256sum; }
+stamp() { awk -v f="$1" '$1 == f' "$REPO_DIR/build/SOURCES"; cat "$REPO_DIR/build/build-deps.sh" | sha256sum; "${CROSS}gcc" --version | head -1; }
 done_once() { [ "$(cat "$STAGE/.built-$1" 2>/dev/null)" = "$(stamp "$1")" ]; }
 mark_done() { stamp "$1" > "$STAGE/.built-$1"; }
 

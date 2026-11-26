@@ -1,8 +1,8 @@
-OpenTTD 14.1 for RISC OS
+OpenTTD 15.3 for RISC OS
 ========================
 
 OpenTTD is an open source transport simulation game based on
-Transport Tycoon Deluxe. This is a RISC OS port of OpenTTD 14.1.
+Transport Tycoon Deluxe. This is a RISC OS port of OpenTTD 15.3.
 
 RISC OS port (C) 2026 Andrew Youll. The application sprite is from the
 2005 RISC OS port by David Llewellyn-Jones.
@@ -89,13 +89,13 @@ a line in !Run to turn this off or choose a different scale.
 
 The free OpenGFX graphics are included, so you don't need the original
 Transport Tycoon files. The OpenSFX sounds come in a second archive
-(OpenTTD-14.1-riscos-OpenSFX.zip); unpack it over !OpenTTD to add them.
+(OpenTTD-15.3-riscos-OpenSFX.zip); unpack it over !OpenTTD to add them.
 
 If you have the original Transport Tycoon Deluxe files, you can copy them
 into your OpenTTD choices directory (see below) and choose them from the
 game options.
 
-The music comes in a third archive (OpenTTD-14.1-riscos-Music.zip);
+The music comes in a third archive (OpenTTD-15.3-riscos-Music.zip);
 unpack it over !OpenTTD too. It has the OpenMSX music and a General MIDI
 SoundFont (TimGM6mb) to play it with, because RISC OS has no MIDI
 synthesiser of its own. If you have !SoftMIDI (formerly !MIDISynth)
@@ -107,6 +107,12 @@ Where things are saved
 Settings, saved games, screenshots and downloaded content are kept in
 
   <Choices$Write>.OpenTTD
+
+This is the same place the OpenTTD 14.1 port used, so your settings,
+saved games and downloaded content carry over. OpenTTD 15.3 loads games
+saved by 14.1, but games saved by 15.3 can't be loaded by 14.1: keep a
+copy of any you might want to go back to. For network games, everyone
+needs the same version.
 
 Messages from the game go into <Wimp$ScrapDir>.OpenTTDlog. If something
 goes wrong, it can also record how much memory the game is using every
@@ -149,11 +155,11 @@ You can also edit the Run line in !Run to change how the game starts:
 
 Source code
 -----------
-This build uses the unmodified OpenTTD 14.1 source from
-https://github.com/OpenTTD/OpenTTD (tag 14.1), plus the small RISC OS
-patch in docs.riscos-patch. It was built with the GCCSDK GCC 10.2
-cross compiler (riscos-crossdev 1.14), UnixLib 5.0.3.12 and SDL 2.32
-(RISC OS video driver).
+This build uses the unmodified OpenTTD 15.3 source from
+https://github.com/OpenTTD/OpenTTD (tag 15.3), plus the small RISC OS
+patch in docs.riscos-patch. It was built with the GCC 16.2 cross
+compiler (riscos-crossdev 1.14's GCC 16 toolchain), UnixLib 5.0.3.12
+and SDL 2.32 (RISC OS video driver).
 
 PThreadTicker is (C) 2026 UnixLib Developers, under the revised BSD
 licence in docs.PThreadTicker-Licence. Source:

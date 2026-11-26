@@ -8,6 +8,19 @@ SDL2 is listed in more detail here:
 
 ## Unreleased
 
+- **OpenTTD 15.3** (was 14.1), the latest stable release (April 2026), with
+  the RISC OS patches ported to it. Games saved by 14.1 load in 15.3;
+  games saved by 15.3 don't load in 14.1. Settings, saves and downloaded
+  content stay in `<Choices$Write>.OpenTTD`.
+- Built with riscos-crossdev's optional **GCC 16.2** toolchain (was GCC
+  10.2), because OpenTTD 15 is C++20. The libraries (xz, LZO, libpng, SDL,
+  riscos-softmidi) are built with it too. `build/get-toolchain.sh`
+  downloads it, as named in riscos-crossdev's `toolchain/gcc16/PREBUILT`.
+- The 32bpp-neon blitter still draws exactly what 32bpp-sse4 does
+  (`tools/blitter-test/run.sh`), and the HTTPS downloads pass
+  `tools/http-test/run.sh`, both updated for OpenTTD 15.
+- The sprite cache is still kept to 128MB: OpenTTD 15's default would let
+  it grow to 512MB at 32bpp.
 - Built with riscos-crossdev 1.14 (UnixLib 5.0.3.12): UnixLib's data is
   word-aligned (programs built with 1.12 or earlier could abort before
   `main` on a Pi, depending on the link), plus its thread, `memcpy` and

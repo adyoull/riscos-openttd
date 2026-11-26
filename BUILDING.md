@@ -1,9 +1,17 @@
 # Building OpenTTD for RISC OS
 
 The game is cross-compiled on Linux (x86_64) with
-[riscos-crossdev](https://github.com/adyoull/riscos-crossdev): GCCSDK
-GCC 10.2 for `arm-riscos-gnueabihf` with riscos-unixlib's UnixLib, its
+[riscos-crossdev](https://github.com/adyoull/riscos-crossdev): its optional
+GCC 16 toolchain for `arm-riscos-gnueabihf` (OpenTTD 15 is C++20, which the
+default GCC 10.2 only partly has) with riscos-unixlib's UnixLib, its
 `elf2aif`, and its checks. The programs are statically linked.
+
+The GCC 16 toolchain is a separate download, named (with its checksum) in
+riscos-crossdev's `toolchain/gcc16/PREBUILT`. `build/get-toolchain.sh`
+fetches it into `work/toolchain-gcc16`, and the build scripts run it
+themselves; set `OPENTTD_TOOLCHAIN` to use a copy you already have.
+(`RISCOS_TOOLCHAIN` is set from it, because riscos-crossdev's image sets
+`RISCOS_TOOLCHAIN` to its default GCC 10.2.)
 
 The versions it's built with are pinned in `.riscos-deps` at the top of the
 repository: riscos-crossdev (and so its toolchain and UnixLib), riscos-mesa
@@ -23,16 +31,17 @@ docker run --rm -v "$PWD":/src ghcr.io/adyoull/riscos-crossdev:1.14 \
 
 (Use the version in `.riscos-deps`. Add `--user "$(id -u):$(id -g)" -e HOME=/tmp`
 so the files it makes are yours.) This is exactly what GitHub runs (see
-"Builds on GitHub" below). It makes `dist/OpenTTD-14.1-riscos.zip`.
+"Builds on GitHub" below). It makes `dist/OpenTTD-15.3-riscos.zip`.
 
 ## On your own machine
 
-Install riscos-crossdev at the tag in `.riscos-deps` and its prebuilt
-toolchain, then point the scripts at it:
+Clone riscos-crossdev at the tag in `.riscos-deps` (its default toolchain
+isn't needed: the build fetches the GCC 16 one), then point the scripts at
+it:
 
 ```sh
 git clone -b v1.14 https://github.com/adyoull/riscos-crossdev ~/riscos/riscos-crossdev
-make -C ~/riscos/riscos-crossdev prebuilt devkit
+make -C ~/riscos/riscos-crossdev devkit
 export RCD_DIR=~/riscos/riscos-crossdev      # found there by default anyway
 ```
 
@@ -42,7 +51,7 @@ same as the image. Then, from this repository:
 
 ```sh
 build/build-deps.sh       # the libraries, into work/stage
-build/build-openttd.sh    # OpenTTD, in work/openttd-14.1/build-ro and build-fast
+build/build-openttd.sh    # OpenTTD, in work/openttd-15.3/build-ro and build-fast
 build/package.sh          # the zip, in dist/
 ```
 
@@ -52,10 +61,11 @@ built with the same sources are skipped.
 
 ### 1. The libraries (`build/build-deps.sh`)
 
-Into `work/stage`:
+Into `work/stage`, all built with the GCC 16 toolchain:
 
 - liblzma (xz 5.4.5), LZO 2.10 and libpng 1.6.43, with their own configure;
-  zlib is riscos-crossdev's devkit's;
+  zlib is riscos-crossdev's devkit's (C, built by GCC 10.2, which links
+  with GCC 16's code as it is);
 - SDL 2.32.10 with the overlay in `gccsdk-overlay/autobuilder/libraries/sdl/libsdl2`;
 - riscos-softmidi (`libmidisynth.a`) at the release in `.riscos-deps`, for
   the `midisynth` music driver.
@@ -69,15 +79,17 @@ driver.
 
 ### 2. OpenTTD (`build/build-openttd.sh`)
 
-- unpacks OpenTTD 14.1 into `work/openttd-14.1` and applies the patches in
-  `patches/openttd/14.1`, in the order of its `series` file (if the patches
-  change later, remove `work/openttd-14.1` to start again from them);
+- unpacks OpenTTD 15.3 (GitHub's archive of the tag) into
+  `work/openttd-15.3`, writes its `.ottdrev` (from `OTTDREV` in the
+  patches directory) and applies the patches in
+  `patches/openttd/15.3`, in the order of its `series` file (if the patches
+  change later, remove `work/openttd-15.3` to start again from them);
 - builds the host tools (`build-host`);
 - configures the cross build with `build/toolchain-riscos.cmake`;
 - builds the standard program in `build-ro` (VFPv3) and the NEON one
   (`openttd-fast`) in `build-fast`, both with `-fstack-clash-protection`,
   and with `-ffile-prefix-map` so the program records source paths as
-  `openttd-14.1/…` rather than the build machine's directories;
+  `openttd-15.3/…` rather than the build machine's directories;
 - checks both programs: riscos-crossdev's `checks/check-static.sh`, and
   `tools/check-binary.sh`, which checks that the UnixLib ticker block size
   agrees between the start-up code and the C side (640 bytes since
@@ -88,13 +100,13 @@ driver.
   instructions (`checks/check-fpu.sh`).
 
 To re-link after changing a library, run `rm build-ro/openttd` and then
-`make openttd` in `work/openttd-14.1/build-ro`.
+`make openttd` in `work/openttd-15.3/build-ro`.
 
 To decode a crash address from a backtrace in the log, use the unstripped
 binary:
 
 ```sh
-$RCD_DIR/toolchain/env/bin/arm-riscos-gnueabihf-addr2line -f -C -e work/openttd-14.1/build-ro/openttd 0x...
+work/toolchain-gcc16/bin/arm-riscos-gnueabihf-addr2line -f -C -e work/openttd-15.3/build-ro/openttd 0x...
 ```
 
 ### 3. Package (`build/package.sh`)
@@ -138,7 +150,8 @@ approve pull requests".
 
 ## Earlier builds
 
-Releases up to 14.1-riscos7 were built with a GCCSDK toolchain made by
-`build/build-toolchain.sh` and the GCCSDK autobuilder. That route has been
-replaced by riscos-crossdev, which builds the same GCCSDK GCC 10.2 with
-the same UnixLib; see the git history for the old scripts and patches.
+Releases up to 14.1-riscos8 were OpenTTD 14.1, built with GCC 10.2: up to
+14.1-riscos7 with a GCCSDK toolchain made by `build/build-toolchain.sh` and
+the GCCSDK autobuilder, then with riscos-crossdev's default toolchain. The
+14.1 patches are still in `patches/openttd/14.1`; see the git history for
+the old scripts.
