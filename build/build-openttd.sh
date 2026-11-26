@@ -42,10 +42,13 @@ for fast in 0 1; do
   ( cd $b && make -j"$JOBS" openttd && "${CROSS}strip" -o openttd-stripped openttd )
 done
 
-# Checks on both programs: static, UnixLib's ticker block, stack probes, no
-# build paths; and the standard one has no VFPv4-only instructions.
+# Checks on both programs: static, data alignment, UnixLib's ticker block,
+# stack probes, no build paths; and the standard one has no VFPv4-only instructions.
 for b in build-ro build-fast; do
   "$RCD_DIR/checks/check-static.sh" "$OPENTTD_SRC/$b/openttd"
+  # Word data on word boundaries: a Pi faults on unaligned loads, and
+  # crossdev 1.12's UnixLib aborted before main in some links.
+  python3 "$RCD_DIR/checks/check-data-align.py" "$OPENTTD_SRC/$b/openttd"
   "$REPO_DIR/tools/check-binary.sh" "$OPENTTD_SRC/$b/openttd" "$OPENTTD_SRC/$b/openttd-stripped"
 done
 "$RCD_DIR/checks/check-fpu.sh" "$OPENTTD_SRC/build-ro/openttd"

@@ -6,6 +6,20 @@ SDL2 is listed in more detail here:
 - [OpenTTD changes](patches/openttd/CHANGELOG.md)
 - [SDL2 changes](gccsdk-overlay/autobuilder/libraries/sdl/libsdl2/CHANGELOG.md)
 
+## Unreleased
+
+- Built with riscos-crossdev 1.14 (UnixLib 5.0.3.12): UnixLib's data is
+  word-aligned (programs built with 1.12 or earlier could abort before
+  `main` on a Pi, depending on the link), plus its thread, `memcpy` and
+  string fixes. The build now also runs crossdev's data-alignment check.
+  PThreadTicker 0.04 is included.
+- SDL overlay from riscos-mesa's main (`1880dfb`, after its 20.3.5-23
+  release): windows at the right size in alpha desktop modes (they were
+  half width), plotting in desktops of fewer than 32 bits per pixel,
+  numbered desktop modes, relative mouse in screen pixels, and sound
+  driver updates from 20.3.5-23. `.riscos-deps` names riscos-mesa
+  v20.3.5-23, its latest release.
+
 ## 14.1-riscos8 (tag `14.1.8`)
 
 Changes since 14.1-riscos7.

@@ -19,7 +19,7 @@ Requirements
  * SharedUnixLibrary 1.16 or later.
  * The PThreadTicker module is included (!OpenTTD.PThrTicker) and
    loaded by !Run; a newer copy in !System is used instead if you have
-   one. It (0.03) comes from UnixLib 5.0.3.1 and makes the game's threads safe
+   one. It (0.04) comes from UnixLib 5.0.3.12 and makes the game's threads safe
    alongside other desktop tasks.
  * For sound, the SharedSound (1.07 or later, part of RISC OS 5),
    StreamManager (0.03 or later) and SharedSoundBuffer (0.07 or later)
@@ -152,7 +152,8 @@ Source code
 This build uses the unmodified OpenTTD 14.1 source from
 https://github.com/OpenTTD/OpenTTD (tag 14.1), plus the small RISC OS
 patch in docs.riscos-patch. It was built with the GCCSDK GCC 10.2
-cross compiler, UnixLib 5.0.3.3 and SDL 2.26 (RISC OS video driver).
+cross compiler (riscos-crossdev 1.14), UnixLib 5.0.3.12 and SDL 2.32
+(RISC OS video driver).
 
 PThreadTicker is (C) 2026 UnixLib Developers, under the revised BSD
 licence in docs.PThreadTicker-Licence. Source:

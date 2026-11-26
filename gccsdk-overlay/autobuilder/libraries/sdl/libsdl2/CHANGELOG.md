@@ -11,6 +11,12 @@ From here on the `.p` files are an unmodified copy of riscos-mesa's
 changes are recorded there. This file is the history of the OpenTTD copy
 up to that point.
 
+- 2026-11-26: copied again from riscos-mesa main `1880dfb` (after
+  v20.3.5-23; handoffs `2026-11-23-mesa-openttd-sdl-overlay-alpha-mode` and
+  `2026-11-12-mesa-openttd-sdl-overlay-risc3d-default`): alpha desktop
+  modes, OS_SpriteOp 52 in non-32 bpp desktops, numbered modes, relative
+  mouse in screen pixels, no sysconf on RISC OS, audio driver changes, and
+  GL-side changes OpenTTD doesn't compile (EGL/RISC3D by default).
 - 2026-11-04: copied again from riscos-mesa `35cff52` (test build 18e,
   not yet released; handoff `2026-11-03-openttd-sdl-overlay-reexport-sdl-2.32.10-8`):
   the overlay is now for SDL 2.32.10 (`build/SOURCES` moved too), with

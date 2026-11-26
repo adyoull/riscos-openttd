@@ -133,8 +133,8 @@ full screen only.
 ## UnixLib
 
 UnixLib changes are made in the separate riscos-unixlib repository, and
-riscos-crossdev's toolchain is built with its releases (UnixLib 5.0.3.6 in
-riscos-crossdev 1.10). Up to 14.1-riscos7 this repository kept a copy of
+riscos-crossdev's toolchain is built with its releases (UnixLib 5.0.3.12 in
+riscos-crossdev 1.14). Up to 14.1-riscos7 this repository kept a copy of
 the change set in `patches/unixlib`. The changes OpenTTD needed first:
 
 - `wchar/wmissing.c`, `wchar/wctype.c`: implementations of the wide-character

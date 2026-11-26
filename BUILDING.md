@@ -17,7 +17,7 @@ riscos-crossdev publishes a container image with the toolchain installed.
 From the top of this repository:
 
 ```sh
-docker run --rm -v "$PWD":/src ghcr.io/adyoull/riscos-crossdev:1.10 \
+docker run --rm -v "$PWD":/src ghcr.io/adyoull/riscos-crossdev:1.14 \
   sh -c 'build/build-deps.sh && build/build-openttd.sh && build/package.sh'
 ```
 
@@ -31,7 +31,7 @@ Install riscos-crossdev at the tag in `.riscos-deps` and its prebuilt
 toolchain, then point the scripts at it:
 
 ```sh
-git clone -b v1.10 https://github.com/adyoull/riscos-crossdev ~/riscos/riscos-crossdev
+git clone -b v1.14 https://github.com/adyoull/riscos-crossdev ~/riscos/riscos-crossdev
 make -C ~/riscos/riscos-crossdev prebuilt devkit
 export RCD_DIR=~/riscos/riscos-crossdev      # found there by default anyway
 ```
