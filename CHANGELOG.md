@@ -6,7 +6,9 @@ SDL2 is listed in more detail here:
 - [OpenTTD changes](patches/openttd/CHANGELOG.md)
 - [SDL2 changes](gccsdk-overlay/autobuilder/libraries/sdl/libsdl2/CHANGELOG.md)
 
-## Unreleased
+## 15.3-riscos1 (tag `15.3.1`)
+
+The first release of OpenTTD 15.3 for RISC OS. Changes since 14.1-riscos8.
 
 - **OpenTTD 15.3** (was 14.1), the latest stable release (April 2026), with
   the RISC OS patches ported to it. Games saved by 14.1 load in 15.3;
