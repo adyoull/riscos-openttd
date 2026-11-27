@@ -19,6 +19,14 @@ SDL2 is listed in more detail here:
 - The 32bpp-neon blitter still draws exactly what 32bpp-sse4 does
   (`tools/blitter-test/run.sh`), and the HTTPS downloads pass
   `tools/http-test/run.sh`, both updated for OpenTTD 15.
+- **Start-up:** the game's window and icon bar icon now appear within a
+  few seconds, with a small "Loading OpenTTD, please wait..." box over the
+  window until the title screen is drawn, and the desktop keeps running
+  meanwhile. Before, the desktop froze for 10 seconds or more while the base
+  sets (the British Train Sounds sets especially) were checked, and the
+  window then stayed black. Tested on the owner's Pi through TestAgent:
+  window and box at 3 s, title screen at about 12 s, the icon bar clock
+  ticking throughout.
 - The sprite cache is still kept to 128MB: OpenTTD 15's default would let
   it grow to 512MB at 32bpp.
 - Built with riscos-crossdev 1.14 (UnixLib 5.0.3.12): UnixLib's data is

@@ -16,12 +16,17 @@ SDL2 video driver behaviour on RISC OS.
   processor between frames. SDL_Delay waits in Wimp_PollIdle in a desktop
   window (whole centiseconds; the rest in steps of at most 4 ms). When the
   game is behind (no wait), it calls sched_yield() so SDL's sound thread
-  gets a turn every frame: the sound ran dry while scrolling.
+  gets a turn every frame: the sound ran dry while scrolling;
+- in a desktop window, a small "Loading OpenTTD, please wait..." box from
+  when the video driver starts until the first frame is drawn (the window
+  was black for 10 s or more). It's a Wimp window of icons only, redrawn by
+  the Wimp itself, so SDL's poll loop keeps it on screen without knowing
+  about it.
 
 For OpenTTD 15.3. See docs/PORTING-NOTES.md in riscos-openttd.
 
 diff --git a/src/video/sdl2_v.cpp b/src/video/sdl2_v.cpp
-index e31afce..0315f07 100644
+index e31afce..316bea9 100644
 --- a/src/video/sdl2_v.cpp
 +++ b/src/video/sdl2_v.cpp
 @@ -21,6 +21,9 @@
@@ -52,7 +57,7 @@ index e31afce..0315f07 100644
  	return true;
  }
  
-@@ -376,8 +383,63 @@ static uint ConvertSdlKeycodeIntoMy(SDL_Keycode kc)
+@@ -376,8 +383,136 @@ static uint ConvertSdlKeycodeIntoMy(SDL_Keycode kc)
  	return key;
  }
  
@@ -106,6 +111,79 @@ index e31afce..0315f07 100644
 +	next = now + std::chrono::milliseconds(50);
 +	SDL_PumpEvents();
 +}
++
++/** Wimp handle of the "Loading" box, or 0 when it isn't open. */
++static int _riscos_loading_window = 0;
++
++/**
++ * RISC OS: open a small desktop box saying the game is loading, in the
++ * middle of the screen. Between the video driver starting (when the game's
++ * window and icon bar icon appear) and the first frame the window would
++ * otherwise be black, for 10 seconds or more with a lot of content. The
++ * box is all icons and the Wimp redraws it itself, so SDL, which polls the
++ * Wimp for this task, needn't know about it (it only moves it when asked).
++ * Only in a desktop window: full screen has no desktop to show it on.
++ */
++static void RiscOsShowLoadingWindow()
++{
++	if (_riscos_loading_window != 0) return;
++
++	/* The screen's size in OS units. */
++	int xeig = 1, yeig = 1, xlimit = 0, ylimit = 0;
++	_swix(OS_ReadModeVariable, _INR(0, 1) | _OUT(2), -1, 4, &xeig);
++	_swix(OS_ReadModeVariable, _INR(0, 1) | _OUT(2), -1, 5, &yeig);
++	_swix(OS_ReadModeVariable, _INR(0, 1) | _OUT(2), -1, 11, &xlimit);
++	_swix(OS_ReadModeVariable, _INR(0, 1) | _OUT(2), -1, 12, &ylimit);
++	const int screen_w = (xlimit + 1) << xeig, screen_h = (ylimit + 1) << yeig;
++
++	static char text[] = "Loading OpenTTD, please wait...";
++	const int w = 640, h = 112;
++	int block[23 + 8] = {};
++	block[0] = (screen_w - w) / 2;      // visible area
++	block[1] = (screen_h - h) / 2;
++	block[2] = block[0] + w;
++	block[3] = block[1] + h;
++	block[6] = -1;                      // open on top
++	block[7] = (int)((1u << 31) | (1u << 26) | (1u << 4) | (1u << 1)); // new flags, title bar, auto-redraw, moveable
++	block[8] = 7 | (2 << 8) | (7 << 16) | (1 << 24); // title fg/bg, work area fg/bg
++	block[9] = 3 | (1 << 8) | (12 << 16);           // scroll bar colours, title highlight
++	block[10] = 0;                      // work area: 0, -h, w, 0
++	block[11] = -h;
++	block[12] = w;
++	block[13] = 0;
++	block[14] = 0x3D;                   // title: text, border, centred, filled
++	block[15] = 0;                      // work area clicks ignored
++	block[16] = 1;                      // the Wimp's sprite area
++	block[17] = 0;                      // no minimum size
++	std::copy_n("OpenTTD", 8, reinterpret_cast<char *>(&block[18]));
++	block[21] = 1;                      // one icon:
++	block[22] = 0;                      // its bounding box
++	block[23] = -h;
++	block[24] = w;
++	block[25] = 0;
++	block[26] = (int)(1u | (1u << 3) | (1u << 4) | (1u << 8) | (7u << 24) | (1u << 28)); // indirected text, centred, black on grey
++	block[27] = (int)text;
++	block[28] = -1;                     // no validation string
++	block[29] = sizeof(text);
++
++	int handle = 0;
++	if (_swix(Wimp_CreateWindow, _IN(1) | _OUT(0), &block[0], &handle) != nullptr) return;
++	int open[8] = { handle, block[0], block[1], block[2], block[3], 0, 0, -1 };
++	if (_swix(Wimp_OpenWindow, _IN(1), open) != nullptr) {
++		_swix(Wimp_DeleteWindow, _IN(1), &handle);
++		return;
++	}
++	_riscos_loading_window = handle;
++	SDL_PumpEvents(); // let the Wimp draw it, and the game's window and icon
++}
++
++/** RISC OS: close the "Loading" box, if it's open. */
++static void RiscOsHideLoadingWindow()
++{
++	if (_riscos_loading_window == 0) return;
++	_swix(Wimp_DeleteWindow, _IN(1), &_riscos_loading_window);
++	_riscos_loading_window = 0;
++}
 +#endif
 +
  bool VideoDriver_SDL_Base::PollEvent()
@@ -116,7 +194,7 @@ index e31afce..0315f07 100644
  	SDL_Event ev;
  
  	if (!SDL_PollEvent(&ev)) return false;
-@@ -517,9 +579,14 @@ bool VideoDriver_SDL_Base::PollEvent()
+@@ -517,9 +652,14 @@ bool VideoDriver_SDL_Base::PollEvent()
  				/* Ensure pointer lock will not occur. */
  				SDL_SetRelativeMouseMode(SDL_FALSE);
  			} else if (ev.window.event == SDL_WINDOWEVENT_LEAVE) {
@@ -131,7 +209,7 @@ index e31afce..0315f07 100644
  			}
  			break;
  		}
-@@ -572,6 +639,16 @@ std::optional<std::string_view> VideoDriver_SDL_Base::Start(const StringList &pa
+@@ -572,12 +712,25 @@ std::optional<std::string_view> VideoDriver_SDL_Base::Start(const StringList &pa
  
  	this->startup_display = FindStartupDisplay(GetDriverParamInt(param, "display", -1));
  
@@ -148,7 +226,16 @@ index e31afce..0315f07 100644
  	if (!CreateMainSurface(_cur_resolution.width, _cur_resolution.height, false)) {
  		return SDL_GetError();
  	}
-@@ -591,8 +668,13 @@ std::optional<std::string_view> VideoDriver_SDL_Base::Start(const StringList &pa
+ 
+ 	const char *dname = SDL_GetCurrentVideoDriver();
+ 	Debug(driver, 1, "SDL2: using driver '{}'", dname);
++#if defined(__riscos__)
++	if ((SDL_GetWindowFlags(this->sdl_window) & SDL_WINDOW_FULLSCREEN) == 0) RiscOsShowLoadingWindow();
++#endif
+ 
+ 	this->driver_info = this->GetName();
+ 	this->driver_info += " (";
+@@ -591,8 +744,13 @@ std::optional<std::string_view> VideoDriver_SDL_Base::Start(const StringList &pa
  
  #ifdef __EMSCRIPTEN__
  	this->is_game_threaded = false;
@@ -162,7 +249,24 @@ index e31afce..0315f07 100644
  #endif
  
  	return std::nullopt;
-@@ -661,7 +743,34 @@ void VideoDriver_SDL_Base::LoopOnce()
+@@ -600,6 +758,9 @@ std::optional<std::string_view> VideoDriver_SDL_Base::Start(const StringList &pa
+ 
+ void VideoDriver_SDL_Base::Stop()
+ {
++#if defined(__riscos__)
++	RiscOsHideLoadingWindow();
++#endif
+ 	SDL_QuitSubSystem(SDL_INIT_VIDEO);
+ 	if (SDL_WasInit(SDL_INIT_EVERYTHING) == 0) {
+ 		SDL_Quit(); // If there's nothing left, quit SDL
+@@ -658,10 +819,41 @@ void VideoDriver_SDL_Base::LoopOnce()
+ 	}
+ 
+ 	this->Tick();
++#if defined(__riscos__)
++	/* The first frame is drawn: the "Loading" box can go. */
++	RiscOsHideLoadingWindow();
++#endif
  
  /* Emscripten is running an event-based mainloop; there is already some
   * downtime between each iteration, so no need to sleep. */
@@ -198,7 +302,7 @@ index e31afce..0315f07 100644
  	this->SleepTillNextTick();
  #endif
  }
-@@ -689,6 +798,22 @@ bool VideoDriver_SDL_Base::ChangeResolution(int w, int h)
+@@ -689,6 +881,22 @@ bool VideoDriver_SDL_Base::ChangeResolution(int w, int h)
  
  bool VideoDriver_SDL_Base::ToggleFullscreen(bool fullscreen)
  {

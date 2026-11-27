@@ -12,15 +12,17 @@ away the 512-byte buffer and seek again. On a desktop PC that was about
 - The MD5 check of the base set files, and of every NewGRF when they're
   scanned at start-up, reads 32 KB at a time instead of 1 KB.
 - Each buffer refill calls RiscOsKeepDesktopAlive() (patch 09), so the
-  desktop is polled while graphics and sounds load.
+  desktop is polled while graphics and sounds load. So does each 32 KB of
+  the base set and NewGRF checksums (the sound sets from the content
+  service take a second or more each).
 
 For OpenTTD 15.3. See docs/PORTING-NOTES.md in riscos-openttd.
 
 diff --git a/src/gfxinit.cpp b/src/gfxinit.cpp
-index 2cdabb7..f60ce14 100644
+index 2cdabb7..0e12346 100644
 --- a/src/gfxinit.cpp
 +++ b/src/gfxinit.cpp
-@@ -450,7 +450,11 @@ MD5File::ChecksumResult MD5File::CheckMD5(Subdirectory subdir, size_t max_size)
+@@ -450,13 +450,23 @@ MD5File::ChecksumResult MD5File::CheckMD5(Subdirectory subdir, size_t max_size)
  	size = std::min(size, max_size);
  
  	Md5 checksum;
@@ -32,8 +34,20 @@ index 2cdabb7..f60ce14 100644
  	MD5Hash digest;
  	size_t len;
  
+ 	while ((len = fread(buffer, 1, (size > sizeof(buffer)) ? sizeof(buffer) : size, *f)) != 0 && size != 0) {
+ 		size -= len;
+ 		checksum.Append(buffer, len);
++#if defined(__riscos__)
++		/* Checking big base sets (sound sets from the content service are
++		 * tens of MB) takes seconds: keep the desktop going meanwhile. */
++		extern void RiscOsKeepDesktopAlive();
++		RiscOsKeepDesktopAlive();
++#endif
+ 	}
+ 
+ 	checksum.Finish(digest);
 diff --git a/src/newgrf_config.cpp b/src/newgrf_config.cpp
-index e524fde..534187f 100644
+index e524fde..4a6f503 100644
 --- a/src/newgrf_config.cpp
 +++ b/src/newgrf_config.cpp
 @@ -257,7 +257,14 @@ size_t GRFGetSizeOfDataSection(FileHandle &f)
@@ -51,6 +65,17 @@ index e524fde..534187f 100644
  	size_t len, size;
  
  	/* open the file */
+@@ -275,6 +282,10 @@ static bool CalcGRFMD5Sum(GRFConfig &config, Subdirectory subdir)
+ 	while ((len = fread(buffer, 1, (size > sizeof(buffer)) ? sizeof(buffer) : size, *f)) != 0 && size != 0) {
+ 		size -= len;
+ 		checksum.Append(buffer, len);
++#if defined(__riscos__)
++		extern void RiscOsKeepDesktopAlive(); // keep the desktop going (main thread only)
++		RiscOsKeepDesktopAlive();
++#endif
+ 	}
+ 	checksum.Finish(config.ident.md5sum);
+ 
 diff --git a/src/random_access_file.cpp b/src/random_access_file.cpp
 index 75aa52f..a5ff900 100644
 --- a/src/random_access_file.cpp

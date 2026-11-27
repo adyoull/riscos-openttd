@@ -18,13 +18,19 @@ does what its description says; what changed:
 - `07-sprite-cache.patch`: OpenTTD 15 has no single cache block any more;
   the 128MB limit is now applied where it frees old sprites.
 - `09-sdl2-video.patch`: `strncmp` replaced (forbidden by `safeguards.h`).
+  New: a "Loading OpenTTD, please wait..." box in a desktop window, from
+  the video driver's start until the first frame. It's a Wimp window of
+  icons only (auto-redraw), so SDL's poll loop keeps it drawn without
+  knowing about it; SDL already passes Open_Window_Request on for any
+  window, so it can be moved.
 - `11-midisynth-music.patch`: OpenTTD 15's driver interface.
 - `12-neon-blitter.patch`: OpenTTD 15's blitter interface (`SpriteType`,
   `SpriteAllocator`, enum classes, `EnumBitSet` flags). Still bit-identical
   to 32bpp-sse4.
 - `13-file-read-speed.patch`: OpenTTD 15's `ReadBlock` already uses the
   buffered bytes; the bigger buffer, seeking inside it and desktop polling
-  remain.
+  remain. New: the base set and NewGRF checksum loops poll the desktop too
+  (the sound sets from the content service took 1 to 3 s each).
 - `14-https-acornssl.patch`: `Connect(std::string_view, HTTPCallback *,
   std::string &&)`; `atoi`/`strtoul` replaced by `std::from_chars`,
   `memcpy` by `std::copy_n`.
